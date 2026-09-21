@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>ComTrack — Student Command Center</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/iconify-icon@2.1.0/dist/iconify-icon.min.js"></script>
+<style>
+:root{
+  --bg:#ffffff; --card:#ffffff; --ink:#000000; --slate:#555555; --muted:#888888;
+  --accent:#000000; --accent-hover:#222222; --accent-deep:#000000;
+  --accent-tint:#f7f7f7; --accent-light:#e5e5e5; --border:#e5e5e5; --icon-border:#d5d5d5;
+  --green:#000000; --orange:#555555; --red:#7a1f1f; --purple:#888888;
+  --ease:cubic-bezier(.4,0,.2,1);
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;}
+html{scroll-padding-top:env(safe-area-inset-top,0px); scroll-behavior:smooth;}
+html,body{height:100%;}
+body{
+  background:var(--bg); color:var(--ink); font-family:'Inter',system-ui,sans-serif;
+  -webkit-font-smoothing:antialiased; overflow-x:hidden;
+}
+.eyebrow{ text-transform:uppercase; font-weight:700; font-size:11px; letter-spacing:.16em; color:var(--accent-hover); }
+
+/* ---- Flat card system: no shadows, sharp edges, hierarchy via border/fill ---- */
+.card{ background:var(--card); border:1px solid var(--border); border-radius:0; }
+.card-sm{ background:var(--card); border:1px solid var(--border); border-radius:0; }
+.card-xs{ background:#fbfbfb; border:1px solid var(--border); border-radius:0; }
+.card-hi{ background:#fff; border:2px solid #000; border-radius:0; }
+.liftable{ transition:background .15s var(--ease), border-color .15s var(--ease); }
+.liftable:hover{ border-color:#000; background:#fafafa; }
+.card-hi.liftable:hover{ background:#f3f3f3; }
+
+.nav-shadow{ border-bottom:1px solid var(--border); }
+.scroller{ display:flex; gap:16px; overflow-x:auto; scroll-snap-type:x mandatory; scroll-behavior:smooth; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding:4px 2px 16px 2px; }
+.scroller::-webkit-scrollbar{ display:none; }
+.snap-card{ scroll-snap-align:start; flex-shrink:0; }
+.progress-track{ background:var(--border); border-radius:0; overflow:hidden; height:4px; }
+.progress-fill{ background:var(--accent); border-radius:0; transition:width .6s var(--ease); }
+
+/* ---- Forms: flat, sharp, no default browser chrome ---- */
+input,textarea{ border:1px solid var(--border); border-radius:2px; padding:11px 14px; font-family:inherit; font-size:14px; width:100%; background:#fff; color:var(--ink); transition:border-color .2s var(--ease), box-shadow .2s var(--ease); }
+select{ border:1px solid var(--border); border-radius:2px; padding:11px 34px 11px 14px; font-family:inherit; font-size:14px; width:100%; background-color:#fff; color:var(--ink); transition:border-color .2s var(--ease), box-shadow .2s var(--ease);
+  appearance:none; -webkit-appearance:none;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='%23555555' stroke-width='1.6' fill='none' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat:no-repeat; background-position:right 14px center;
+}
+input:focus,select:focus,textarea:focus{ outline:none; border-color:#000; box-shadow:0 0 0 1px #000; }
+label.field-label{ font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:var(--slate); margin-bottom:6px; display:block; }
+
+/* ---- Buttons: monochrome, small-radius, no glow ---- */
+.btn{ border-radius:3px; font-weight:600; font-size:13px; letter-spacing:.02em; padding:10px 20px; transition:background .2s var(--ease), border-color .2s var(--ease), color .2s var(--ease), transform .1s var(--ease); cursor:pointer; border:1px solid transparent; }
+.btn:active{ transform:scale(.98); }
+.btn-primary{ background:#000; color:#fff; border:1px solid #000; }
+.btn-primary:hover{ background:#222222; border-color:#222222; }
+.btn-ghost{ background:#fff; color:#000; border:1px solid #000; }
+.btn-ghost:hover{ background:#000; color:#fff; }
+.btn-danger{ background:#fff; color:var(--red); border:1px solid var(--red); }
+.btn-danger:hover{ background:var(--red); color:#fff; }
+.chip{ border-radius:2px; font-size:11px; font-weight:700; letter-spacing:.04em; padding:5px 12px; }
+
+/* ---- Sidebar / shell ---- */
+.app-shell{ display:block; }
+.sidebar{ display:none; }
+@media(min-width:768px){
+  .app-shell{ display:flex; align-items:stretch; }
+  .sidebar{
+    display:flex; flex-direction:column; width:232px; flex-shrink:0;
+    background:var(--card); border-right:1px solid var(--border);
+    position:sticky; top:0; align-self:flex-start; height:100vh; padding:22px 14px; overflow-y:auto;
+  }
+}
+.shell-main{ flex:1; min-width:0; }
+.sidebar-group-label{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin:18px 10px 6px; }
+.sidebar-group-label:first-of-type{ margin-top:2px; }
+.sidebar-link{ display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:0; font-weight:600; font-size:13px; color:var(--ink); text-align:left; background:transparent; border-left:3px solid transparent; transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease); }
+.sidebar-link iconify-icon{ font-size:16px; flex-shrink:0; }
+.sidebar-link:hover{ background:#f3f3f3; }
+.sidebar-link.active{ background:#000; color:#fff; border-left-color:#000; }
+.sidebar-link.active iconify-icon{ color:#fff; }
+.sidebar-stat{ background:#fff; border:1px solid #000; border-radius:0; padding:12px 14px; margin:14px 2px; }
+
+/* ---- Icon buttons: square, sharp, invert on hover ---- */
+.round-btn{ width:40px; height:40px; border-radius:2px; background:#fff; border:1px solid var(--icon-border); display:flex; align-items:center; justify-content:center; color:var(--ink); flex-shrink:0; transition:background .15s var(--ease), border-color .15s var(--ease), color .15s var(--ease); }
+.round-btn:hover{ background:#000; border-color:#000; color:#fff; }
+.round-btn.danger:hover{ background:var(--red); border-color:var(--red); color:#fff; }
+.carousel-arrow{ width:36px; height:36px; border-radius:2px; background:#fff; border:1px solid var(--icon-border); display:flex; align-items:center; justify-content:center; color:var(--ink); transition:.15s var(--ease); flex-shrink:0; }
+.carousel-arrow:hover{ background:#000; border-color:#000; color:#fff; }
+.stepper-btn{ width:28px; height:28px; border-radius:2px; background:#fff; border:1px solid var(--icon-border); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px; color:var(--ink); transition:.15s var(--ease); flex-shrink:0; }
+.stepper-btn:hover{ background:#000; border-color:#000; color:#fff; }
+
+/* ---- Quick action cards: flat blocks ---- */
+.qa-card{ background:#fff; border:1px solid var(--border); border-radius:0; padding:16px; display:flex; flex-direction:column; align-items:flex-start; gap:9px; text-align:left; transition:background .15s var(--ease), border-color .15s var(--ease); cursor:pointer; width:100%; }
+.qa-card:hover{ background:#f7f7f7; border-color:#000; }
+.qa-icon{ width:38px; height:38px; border-radius:0; background:#f7f7f7; color:#000; display:flex; align-items:center; justify-content:center; font-size:18px; border:1px solid var(--border); }
+.qa-title{ font-weight:700; font-size:13.5px; color:var(--ink); }
+.qa-sub{ font-size:11px; color:var(--slate); }
+
+.navlink{ padding:8px 16px; border-radius:0; font-weight:600; font-size:14px; color:var(--slate); transition:.2s var(--ease); }
+.navlink.active{ color:var(--ink); background:var(--accent-tint); }
+.navlink:hover{ color:var(--ink); }
+
+/* ---- Mobile bottom nav: flat segmented tab bar, fully remodeled ---- */
+.bottomnav-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; font-size:10.5px; font-weight:700; color:var(--muted); padding:10px 0 8px; flex:1; border:none; background:transparent; transition:color .15s var(--ease); }
+.bottomnav-item + .bottomnav-item{ border-left:1px solid var(--border); }
+.bn-icon{ width:46px; height:30px; display:flex; align-items:center; justify-content:center; border-radius:8px; background:transparent; border:1.5px solid var(--icon-border); transition:background .15s var(--ease), border-color .15s var(--ease), transform .15s var(--ease); }
+.bottomnav-item:active .bn-icon{ transform:scale(.9); }
+.bottomnav-item.active{ color:#000; }
+.bottomnav-item.active .bn-icon{ background:#000; border-color:#000; }
+.bottomnav-item.active .bn-icon iconify-icon{ color:#fff; }
+
+.view{ display:none; }
+.view.active{ display:block; }
+
+/* ---- Modal: flat, sharp, fade only ---- */
+.modal-backdrop{ position:fixed; inset:0; background:rgba(11,18,32,.5); z-index:50; display:flex; align-items:flex-end; justify-content:center; opacity:0; visibility:hidden; pointer-events:none; transition:opacity .2s var(--ease); }
+.modal-backdrop.active{ opacity:1; visibility:visible; pointer-events:auto; }
+@media(min-width:768px){ .modal-backdrop{ align-items:center; } }
+.modal-box{ background:#fff; width:100%; max-width:540px; max-height:88vh; overflow-y:auto; border-radius:0; border:2px solid #000; padding:24px; transform:translateY(10px); opacity:0; transition:transform .2s var(--ease), opacity .2s var(--ease); }
+.modal-backdrop.active .modal-box{ transform:translateY(0); opacity:1; }
+
+.habit-cell{ width:28px; height:28px; border-radius:0; background:var(--border); display:flex; align-items:center; justify-content:center; transition:background .2s var(--ease); }
+.habit-cell.done{ background:var(--accent); }
+.toast{ position:fixed; bottom:calc(90px + env(safe-area-inset-bottom,0px)); left:50%; transform:translateX(-50%) translateY(20px); background:var(--ink); color:#fff; padding:12px 20px; border-radius:0; font-size:14px; font-weight:600; opacity:0; transition:.25s var(--ease); z-index:80; pointer-events:none; white-space:nowrap; }
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+@media(min-width:768px){ .toast{ bottom:32px; } }
+.tab-btn{ padding:8px 16px; border-radius:0; font-weight:600; font-size:13px; color:var(--slate); border:1px solid transparent; transition:.2s var(--ease); }
+.tab-btn.active{ background:var(--ink); color:#fff; }
+.tab-btn:hover:not(.active){ background:var(--accent-tint); color:var(--ink); }
+@media(prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+::selection{ background:var(--accent-light); }
+.hero-radial{ background:var(--accent-tint); border-bottom:2px solid var(--accent); }
+.focus-mode{ position:fixed; inset:0; background:#fff; z-index:100; display:none; flex-direction:column; align-items:center; justify-content:center; padding:24px; }
+.focus-mode.active{ display:flex; }
+.swipe-hint{ font-size:10.5px; font-weight:600; color:var(--slate); opacity:.7; }
+.priority-dot{ width:6px; height:6px; border-radius:0; display:inline-block; }
+
+/* ===== Static utility layer (no runtime CSS generation — renders identically everywhere) ===== */
+.flex{display:flex} .inline-flex{display:inline-flex} .flex-col{flex-direction:column}
+.flex-1{flex:1 1 0%} .flex-wrap{flex-wrap:wrap} .flex-shrink-0{flex-shrink:0}
+.items-center{align-items:center} .items-start{align-items:flex-start} .items-end{align-items:flex-end}
+.justify-between{justify-content:space-between} .justify-center{justify-content:center} .justify-end{justify-content:flex-end}
+.grid{display:grid}
+.grid-cols-1{grid-template-columns:repeat(1,minmax(0,1fr))}
+.grid-cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.gap-1{gap:4px} .gap-2{gap:8px} .gap-3{gap:12px} .gap-4{gap:16px} .gap-6{gap:24px}
+.p-2{padding:8px} .p-3{padding:12px} .p-4{padding:16px} .p-5{padding:20px} .p-6{padding:24px} .p-8{padding:32px}
+.px-2{padding-left:8px;padding-right:8px} .px-4{padding-left:16px;padding-right:16px}
+.pb-1{padding-bottom:4px} .pb-2{padding-bottom:8px} .pb-8{padding-bottom:32px} .pb-16{padding-bottom:64px} .pb-28{padding-bottom:112px}
+.pt-2{padding-top:8px} .pt-6{padding-top:24px}
+.mb-0{margin-bottom:0} .mb-1{margin-bottom:4px} .mb-2{margin-bottom:8px} .mb-3{margin-bottom:12px}
+.mb-4{margin-bottom:16px} .mb-5{margin-bottom:20px} .mb-6{margin-bottom:24px} .mb-8{margin-bottom:32px} .mb-10{margin-bottom:40px}
+.mt-1{margin-top:4px} .mt-2{margin-top:8px} .mt-3{margin-top:12px} .mt-4{margin-top:16px} .mt-5{margin-top:20px} .mt-6{margin-top:24px}
+.mt-0\.5{margin-top:2px}
+.mr-1{margin-right:4px} .mr-2{margin-right:8px}
+.my-3{margin-top:12px;margin-bottom:12px} .my-6{margin-top:24px;margin-bottom:24px}
+.mx-auto{margin-left:auto;margin-right:auto}
+.ml-auto{margin-left:auto}
+.h-2{height:8px} .h-7{height:28px} .h-14{height:56px} .h-full{height:100%}
+.w-7{width:28px} .w-14{width:56px} .w-full{width:100%}
+.min-w-0{min-width:0}
+.max-w-\[520px\]{max-width:520px}
+.max-w-\[560px\]{max-width:560px}
+.max-w-\[1180px\]{max-width:1180px}
+.min-w-\[120px\]{min-width:120px}
+.max-h-\[140px\]{max-height:140px}
+.h-\[60px\]{height:60px}
+.w-\[160px\]{width:160px}
+.rounded-\[10px\]{border-radius:0}
+.rounded-\[26px\]{border-radius:0}
+.rounded-full{border-radius:0}
+.font-bold{font-weight:700} .font-extrabold{font-weight:800} .font-semibold{font-weight:600}
+.leading-\[1\.05\]{line-height:1.05}
+.tracking-tight{letter-spacing:-0.015em}
+.tabular-nums{font-variant-numeric:tabular-nums}
+.text-center{text-align:center} .text-left{text-align:left}
+.truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.line-clamp-3{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.cursor-pointer{cursor:pointer}
+.hidden{display:none}
+.sticky{position:sticky}
+.fixed{position:fixed}
+.top-0{top:0} .bottom-0{bottom:0} .left-0{left:0} .right-0{right:0}
+.bottom-8{bottom:32px} .right-8{right:32px}
+.z-30{z-index:30}
+.overflow-x-auto{overflow-x:auto} .overflow-y-auto{overflow-y:auto}
+.transition{transition:all .2s var(--ease)}
+.self-start{align-self:flex-start}
+.border{border-width:1px;border-style:solid;border-color:var(--border);}
+.align-\[-2px\]{vertical-align:-2px}
+.hover\:-translate-y-0\.5:hover{ background:var(--accent-tint); }
+.text-\[9px\]{font-size:9px}
+.text-\[10px\]{font-size:10px} .text-\[11px\]{font-size:11px} .text-\[12px\]{font-size:12px}
+.text-\[13px\]{font-size:13px} .text-\[14px\]{font-size:14px} .text-\[15px\]{font-size:15px}
+.text-\[16px\]{font-size:16px} .text-\[18px\]{font-size:18px} .text-\[20px\]{font-size:20px}
+.text-\[22px\]{font-size:22px} .text-\[26px\]{font-size:26px} .text-\[30px\]{font-size:30px}
+.text-\[34px\]{font-size:34px}
+.text-\[36px\]{font-size:36px}
+.\!px-3{padding-left:12px !important;padding-right:12px !important}
+.\!px-4{padding-left:16px !important;padding-right:16px !important}
+.\!py-1\.5{padding-top:6px !important;padding-bottom:6px !important}
+.\!py-2{padding-top:8px !important;padding-bottom:8px !important}
+.\!text-\[12px\]{font-size:12px !important}
+.\!text-\[13px\]{font-size:13px !important}
+.\!w-\[160px\]{width:160px !important}
+.\!w-auto{width:auto !important}
+@media(min-width:768px){
+  .md\:flex{display:flex}
+  .md\:flex-row{flex-direction:row}
+  .md\:items-end{align-items:flex-end}
+  .md\:grid-cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .md\:grid-cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .md\:hidden{display:none}
+  .md\:inline{display:inline}
+  .md\:items-center{align-items:center}
+  .md\:justify-between{justify-content:space-between}
+  .md\:p-10{padding:40px}
+  .md\:p-4{padding:16px}
+  .md\:pb-16{padding-bottom:64px}
+  .md\:px-6{padding-left:24px;padding-right:24px}
+  .md\:text-\[38px\]{font-size:38px}
+  .md\:text-\[52px\]{font-size:52px}
+  .md\:w-\[300px\]{width:300px}
+}
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <!-- ============ SIDEBAR (desktop) ============ -->
+  <aside class="sidebar">
+    <div class="flex items-center gap-3 cursor-pointer mb-8" onclick="Views.show('home')">
+      <div class="w-7 h-7 flex items-center justify-center flex-shrink-0" style="background:#000; border-radius:0;">
+        <iconify-icon icon="ph:graduation-cap-fill" style="color:#fff; font-size:16px;"></iconify-icon>
+      </div>
+      <div class="leading-[1.05]">
+        <div class="font-extrabold text-[13px] tracking-tight" style="color:#000;">STUDENT</div>
+        <div class="text-[11px] font-semibold" style="color:var(--slate);">COMMAND CENTER</div>
+      </div>
+    </div>
+    <div class="flex flex-col gap-1" style="flex:1;">
+      <div class="sidebar-group-label">Overview</div>
+      <button class="sidebar-link" data-view="home" onclick="Views.show('home')"><iconify-icon icon="ph:house-fill"></iconify-icon>Dashboard</button>
+      <button class="sidebar-link" data-view="tasks" onclick="Views.show('tasks')"><iconify-icon icon="ph:check-square-fill"></iconify-icon>Tasks</button>
+      <button class="sidebar-link" data-view="study" onclick="Views.show('study')"><iconify-icon icon="ph:timer-fill"></iconify-icon>Study</button>
+      <button class="sidebar-link" data-view="study" onclick="Views.show('study')"><iconify-icon icon="ph:calendar-fill"></iconify-icon>Planner</button>
+      <div class="sidebar-group-label">Academics</div>
+      <button class="sidebar-link" data-view="study" onclick="Views.show('study')"><iconify-icon icon="ph:books-fill"></iconify-icon>Subjects</button>
+      <button class="sidebar-link" data-view="exams" onclick="Views.show('exams')"><iconify-icon icon="ph:exam-fill"></iconify-icon>Exams</button>
+      <button class="sidebar-link" data-view="study" onclick="Views.show('study')"><iconify-icon icon="ph:notepad-fill"></iconify-icon>Notes</button>
+      <div class="sidebar-group-label">Personal</div>
+      <button class="sidebar-link" data-view="goals" onclick="Views.show('goals')"><iconify-icon icon="ph:target-fill"></iconify-icon>Goals</button>
+      <button class="sidebar-link" data-view="study" onclick="Views.show('study')"><iconify-icon icon="ph:fire-fill"></iconify-icon>Habits</button>
+      <div class="sidebar-group-label">Insights</div>
+      <button class="sidebar-link" data-view="analytics" onclick="Views.show('analytics')"><iconify-icon icon="ph:chart-line-up-fill"></iconify-icon>Analytics</button>
+    </div>
+    <div id="sidebarStats"></div>
+    <button class="sidebar-link" data-view="settings" onclick="Views.show('settings')"><iconify-icon icon="ph:gear-fill"></iconify-icon>Settings</button>
+  </aside>
+
+  <div class="shell-main">
+  <!-- ============ TOP NAV ============ -->
+  <nav class="sticky top-0 z-30 nav-shadow" style="background:var(--bg); padding-top:env(safe-area-inset-top,0px);">
+    <div class="max-w-[1180px] mx-auto px-4 md:px-6 h-[60px] flex items-center gap-4">
+      <div class="flex items-center gap-3 cursor-pointer md:hidden" onclick="Views.show('home')">
+        <div class="w-7 h-7 rounded-[10px] flex items-center justify-center flex-shrink-0" style="background:var(--accent);">
+          <iconify-icon icon="ph:graduation-cap-fill" style="color:#fff; font-size:16px;"></iconify-icon>
+        </div>
+        <div class="leading-[1.05]">
+          <div class="font-extrabold text-[14px] tracking-tight" style="color:var(--ink);">Student <span style="color:var(--accent);">Command Center</span></div>
+        </div>
+      </div>
+      <div class="flex items-center gap-3 ml-auto">
+        <button class="btn btn-primary hidden md:flex !py-2 !px-4 !text-[13px]" onclick="Views.openQuickAdd()"><iconify-icon icon="ph:plus-bold" class="align-[-2px] mr-1"></iconify-icon>New</button>
+        <button class="round-btn" onclick="Views.openSearch()" aria-label="Search">
+          <iconify-icon icon="ph:magnifying-glass-bold"></iconify-icon>
+        </button>
+        <span class="hidden md:inline text-[13px] font-semibold" style="color:var(--slate);" id="navStudentName">Student</span>
+        <button class="round-btn md:hidden" onclick="Views.show('settings')" aria-label="Settings">
+          <iconify-icon icon="ph:gear-fill"></iconify-icon>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="max-w-[1180px] mx-auto px-4 md:px-6 pb-28 md:pb-16">
+
+
+<!-- ============ HOME ============ -->
+<section id="view-home" class="view pt-6">
+  <div class="pb-8 mb-8" style="border-bottom:2px solid #000;">
+    <div class="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
+      <div class="max-w-[560px]">
+        <div class="text-[12px] font-semibold mb-2 tracking-tight" style="color:var(--muted); letter-spacing:.05em;" id="heroDate"></div>
+        <div class="eyebrow mb-3" id="heroGreeting">TODAY</div>
+        <h1 class="font-extrabold tracking-tight text-[34px] md:text-[52px]" style="line-height:1.02; color:#000;">Make It Count.</h1>
+        <p class="mt-4 text-[15px]" style="color:var(--slate);">Your study plan, tasks and progress — organized in one place.</p>
+        <div class="flex items-center gap-3 mt-5 flex-wrap">
+          <button class="btn btn-primary" onclick="Views.openQuickAdd()"><iconify-icon icon="ph:plus-bold" class="align-[-2px] mr-1"></iconify-icon>ADD TASK</button>
+          <button class="btn btn-ghost" onclick="Views.show('tasks')">VIEW TASKS</button>
+        </div>
+      </div>
+      <div class="card-hi p-5 w-full md:w-[300px] flex-shrink-0" id="progressCard"></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-10">
+    <button class="qa-card" onclick="Views.openTaskForm()">
+      <div class="qa-icon"><iconify-icon icon="ph:check-square-fill"></iconify-icon></div>
+      <div class="qa-title">Add task</div>
+      <div class="qa-sub">Plan something</div>
+    </button>
+    <button class="qa-card" onclick="Views.show('study')">
+      <div class="qa-icon"><iconify-icon icon="ph:timer-fill"></iconify-icon></div>
+      <div class="qa-title">Study</div>
+      <div class="qa-sub">Start a session</div>
+    </button>
+    <button class="qa-card" onclick="Views.openNoteForm()">
+      <div class="qa-icon"><iconify-icon icon="ph:notepad-fill"></iconify-icon></div>
+      <div class="qa-title">Add note</div>
+      <div class="qa-sub">Capture an idea</div>
+    </button>
+    <button class="qa-card" onclick="Views.openExamForm()">
+      <div class="qa-icon"><iconify-icon icon="ph:exam-fill"></iconify-icon></div>
+      <div class="qa-title">Add exam</div>
+      <div class="qa-sub">Track preparation</div>
+    </button>
+  </div>
+
+  <div class="mb-10">
+    <div class="flex items-end justify-between mb-1">
+      <div>
+        <h2 class="font-extrabold text-[20px] tracking-tight">Today's Tasks</h2>
+        <p class="text-[13px]" style="color:var(--slate);">Stay on top of what matters today.</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.show('tasks')">See all</button>
+        <div class="hidden md:flex gap-1">
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeTaskScroller',-1)" aria-label="Previous"><iconify-icon icon="ph:caret-left-bold"></iconify-icon></button>
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeTaskScroller',1)" aria-label="Next"><iconify-icon icon="ph:caret-right-bold"></iconify-icon></button>
+        </div>
+      </div>
+    </div>
+    <div id="homeTaskScroller" class="scroller mt-3"></div>
+  </div>
+
+  <div class="mb-10">
+    <div class="flex items-end justify-between mb-1">
+      <h2 class="font-extrabold text-[20px] tracking-tight">Your Subjects</h2>
+      <div class="flex items-center gap-3">
+        <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.openSubjectForm()">+ Add subject</button>
+        <div class="hidden md:flex gap-1">
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeSubjectScroller',-1)" aria-label="Previous"><iconify-icon icon="ph:caret-left-bold"></iconify-icon></button>
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeSubjectScroller',1)" aria-label="Next"><iconify-icon icon="ph:caret-right-bold"></iconify-icon></button>
+        </div>
+      </div>
+    </div>
+    <div id="homeSubjectScroller" class="scroller mt-3"></div>
+  </div>
+
+  <div class="mb-10">
+    <div class="flex items-end justify-between mb-1">
+      <h2 class="font-extrabold text-[20px] tracking-tight">Upcoming Exams</h2>
+      <div class="flex items-center gap-3">
+        <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.show('exams')">See all</button>
+        <div class="hidden md:flex gap-1">
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeExamScroller',-1)" aria-label="Previous"><iconify-icon icon="ph:caret-left-bold"></iconify-icon></button>
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeExamScroller',1)" aria-label="Next"><iconify-icon icon="ph:caret-right-bold"></iconify-icon></button>
+        </div>
+      </div>
+    </div>
+    <div id="homeExamScroller" class="scroller mt-3"></div>
+  </div>
+
+  <div class="mb-10">
+    <div class="flex items-end justify-between mb-1">
+      <h2 class="font-extrabold text-[20px] tracking-tight">Goals</h2>
+      <div class="flex items-center gap-3">
+        <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.openGoalForm()">+ Add goal</button>
+        <div class="hidden md:flex gap-1">
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeGoalScroller',-1)" aria-label="Previous"><iconify-icon icon="ph:caret-left-bold"></iconify-icon></button>
+          <button class="carousel-arrow" onclick="Views.scrollCarousel('homeGoalScroller',1)" aria-label="Next"><iconify-icon icon="ph:caret-right-bold"></iconify-icon></button>
+        </div>
+      </div>
+    </div>
+    <div id="homeGoalScroller" class="scroller mt-3"></div>
+  </div>
+</section>
+
+<!-- ============ TASKS ============ -->
+<section id="view-tasks" class="view pt-6">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="font-extrabold text-[26px] tracking-tight">Tasks</h1>
+    <button class="btn btn-primary" onclick="Views.openTaskForm()"><iconify-icon icon="ph:plus-bold" class="align-[-2px] mr-1"></iconify-icon>Add task</button>
+  </div>
+  <input id="taskSearch" placeholder="Search tasks" class="mb-3" oninput="Views.renderTasks()">
+  <div class="flex gap-2 overflow-x-auto mb-3 pb-1" style="scrollbar-width:none;">
+    <button class="tab-btn active" data-taskfilter="all" onclick="Views.setTaskFilter('all')">All</button>
+    <button class="tab-btn" data-taskfilter="today" onclick="Views.setTaskFilter('today')">Today</button>
+    <button class="tab-btn" data-taskfilter="upcoming" onclick="Views.setTaskFilter('upcoming')">Upcoming</button>
+    <button class="tab-btn" data-taskfilter="overdue" onclick="Views.setTaskFilter('overdue')">Overdue</button>
+    <button class="tab-btn" data-taskfilter="completed" onclick="Views.setTaskFilter('completed')">Completed</button>
+  </div>
+  <div class="flex gap-2 mb-5">
+    <select id="taskSubjectFilter" onchange="Views.renderTasks()" class="!w-auto text-[13px]"><option value="">All subjects</option></select>
+    <select id="taskPriorityFilter" onchange="Views.renderTasks()" class="!w-auto text-[13px]">
+      <option value="">All priorities</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option>
+    </select>
+  </div>
+  <div id="taskList" class="flex flex-col gap-3"></div>
+</section>
+
+<!-- ============ STUDY ============ -->
+<section id="view-study" class="view pt-6">
+  <h1 class="font-extrabold text-[26px] tracking-tight mb-4">Study</h1>
+
+  <div class="card p-6 md:p-10 flex flex-col items-center text-center mb-8">
+    <div class="eyebrow mb-2">Study Timer</div>
+    <div class="font-extrabold tabular-nums" style="font-size:64px; line-height:1; color:var(--ink);" id="timerDisplay">25:00</div>
+    <div class="mt-3 text-[14px] font-semibold" style="color:var(--slate);" id="timerSubjectLabel">Select a subject to begin</div>
+    <div class="flex gap-2 mt-3">
+      <select id="timerSubjectSelect" class="!w-auto text-[13px]"></select>
+      <input id="timerTopic" placeholder="Topic (optional)" class="!w-[160px] text-[13px]">
+    </div>
+    <div class="flex gap-2 mt-4">
+      <button class="chip btn-ghost" onclick="Timer.setPreset(25)">25 min</button>
+      <button class="chip btn-ghost" onclick="Timer.setPreset(50)">50 min</button>
+      <button class="chip btn-ghost" onclick="Timer.setCustom()">Custom</button>
+    </div>
+    <div class="flex gap-3 mt-6">
+      <button class="btn btn-primary" id="timerStartBtn" onclick="Timer.start()">Start</button>
+      <button class="btn btn-ghost" id="timerPauseBtn" onclick="Timer.pause()">Pause</button>
+      <button class="btn btn-ghost" onclick="Timer.reset()">Reset</button>
+      <button class="btn btn-ghost" onclick="Timer.enterFocus()"><iconify-icon icon="ph:arrows-out-bold" class="align-[-2px]"></iconify-icon></button>
+    </div>
+  </div>
+
+  <div class="flex items-center justify-between mb-1">
+    <h2 class="font-extrabold text-[20px] tracking-tight">Subjects</h2>
+    <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.openSubjectForm()">+ Add subject</button>
+  </div>
+  <div id="studySubjectScroller" class="scroller mt-3 mb-8"></div>
+
+  <div class="flex items-center justify-between mb-1">
+    <h2 class="font-extrabold text-[20px] tracking-tight">Weekly Study Planner</h2>
+    <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.openTimetableForm()">+ Add block</button>
+  </div>
+  <div id="timetableScroller" class="scroller mt-3 mb-8"></div>
+
+  <div class="flex items-center justify-between mb-1">
+    <h2 class="font-extrabold text-[20px] tracking-tight">Recent Study Sessions</h2>
+  </div>
+  <div id="sessionList" class="flex flex-col gap-2 mt-3 mb-8"></div>
+
+  <div class="flex items-center justify-between mb-1">
+    <h2 class="font-extrabold text-[20px] tracking-tight">Habits</h2>
+    <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.openHabitForm()">+ Add habit</button>
+  </div>
+  <div id="habitList" class="flex flex-col gap-3 mt-3 mb-8"></div>
+
+  <div class="flex items-center justify-between mb-1">
+    <h2 class="font-extrabold text-[20px] tracking-tight">Notes</h2>
+    <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.openNoteForm()">+ Add note</button>
+  </div>
+  <input id="noteSearch" placeholder="Search notes" class="my-3" oninput="Views.renderNotes()">
+  <div id="noteGrid" class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8"></div>
+</section>
+
+<!-- ============ EXAMS ============ -->
+<section id="view-exams" class="view pt-6">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="font-extrabold text-[26px] tracking-tight">Exams</h1>
+    <button class="btn btn-primary" onclick="Views.openExamForm()"><iconify-icon icon="ph:plus-bold" class="align-[-2px] mr-1"></iconify-icon>Add exam</button>
+  </div>
+  <div id="examListFull" class="flex flex-col gap-4"></div>
+</section>
+
+<!-- ============ ANALYTICS ============ -->
+<section id="view-analytics" class="view pt-6">
+  <h1 class="font-extrabold text-[26px] tracking-tight mb-4">Analytics</h1>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-8" id="statGrid"></div>
+
+  <div class="card p-5 mb-6">
+    <h3 class="font-bold text-[15px] mb-4">Study time by subject</h3>
+    <div id="chartBySubject" class="flex flex-col gap-3"></div>
+  </div>
+  <div class="card p-5 mb-6">
+    <h3 class="font-bold text-[15px] mb-4">Study time — last 7 days</h3>
+    <div id="chartByDay" class="flex items-end gap-2" style="height:120px;"></div>
+  </div>
+  <div class="card p-5 mb-10">
+    <h3 class="font-bold text-[15px] mb-4">Tasks completed — last 7 days</h3>
+    <div id="chartTasksByDay" class="flex items-end gap-2" style="height:120px;"></div>
+  </div>
+</section>
+
+<!-- ============ GOALS (standalone, reached via More/Home) ============ -->
+<section id="view-goals" class="view pt-6">
+  <div class="flex items-center justify-between mb-4">
+    <h1 class="font-extrabold text-[26px] tracking-tight">Goals</h1>
+    <button class="btn btn-primary" onclick="Views.openGoalForm()"><iconify-icon icon="ph:plus-bold" class="align-[-2px] mr-1"></iconify-icon>Add goal</button>
+  </div>
+  <div class="flex gap-2 mb-4">
+    <button class="tab-btn active" data-goalfilter="today" onclick="Views.setGoalFilter('today')">Today</button>
+    <button class="tab-btn" data-goalfilter="week" onclick="Views.setGoalFilter('week')">This Week</button>
+    <button class="tab-btn" data-goalfilter="long" onclick="Views.setGoalFilter('long')">Long Term</button>
+  </div>
+  <div id="goalListFull" class="flex flex-col gap-3"></div>
+</section>
+
+<!-- ============ MORE ============ -->
+<section id="view-more" class="view pt-6">
+  <h1 class="font-extrabold text-[26px] tracking-tight mb-5">More</h1>
+  <div class="flex flex-col gap-3">
+    <button class="card-sm p-4 flex items-center gap-3 text-left" onclick="Views.show('goals')">
+      <iconify-icon icon="ph:target-fill" style="font-size:20px; color:var(--accent);"></iconify-icon>
+      <span class="font-semibold text-[14px] flex-1">Goals</span><iconify-icon icon="ph:caret-right-bold" style="color:var(--slate);"></iconify-icon>
+    </button>
+    <button class="card-sm p-4 flex items-center gap-3 text-left" onclick="Views.show('analytics')">
+      <iconify-icon icon="ph:chart-line-up-fill" style="font-size:20px; color:var(--accent);"></iconify-icon>
+      <span class="font-semibold text-[14px] flex-1">Analytics</span><iconify-icon icon="ph:caret-right-bold" style="color:var(--slate);"></iconify-icon>
+    </button>
+    <button class="card-sm p-4 flex items-center gap-3 text-left" onclick="Views.show('study')">
+      <iconify-icon icon="ph:book-open-fill" style="font-size:20px; color:var(--accent);"></iconify-icon>
+      <span class="font-semibold text-[14px] flex-1">Study, notes &amp; habits</span><iconify-icon icon="ph:caret-right-bold" style="color:var(--slate);"></iconify-icon>
+    </button>
+    <button class="card-sm p-4 flex items-center gap-3 text-left" onclick="Views.show('settings')">
+      <iconify-icon icon="ph:gear-fill" style="font-size:20px; color:var(--accent);"></iconify-icon>
+      <span class="font-semibold text-[14px] flex-1">Settings &amp; data</span><iconify-icon icon="ph:caret-right-bold" style="color:var(--slate);"></iconify-icon>
+    </button>
+  </div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="view-settings" class="view pt-6">
+  <h1 class="font-extrabold text-[26px] tracking-tight mb-5">Settings</h1>
+
+  <div class="card p-5 mb-5 flex flex-col gap-4">
+    <div>
+      <label class="field-label">Display name</label>
+      <input id="settingName" placeholder="Student">
+    </div>
+    <div>
+      <label class="field-label">Default timer duration (minutes)</label>
+      <input id="settingTimer" type="number" min="1" max="180">
+    </div>
+    <div>
+      <label class="field-label">Start of week</label>
+      <select id="settingWeekStart"><option value="Monday">Monday</option><option value="Sunday">Sunday</option></select>
+    </div>
+    <div class="flex items-center justify-between">
+      <label class="field-label mb-0">Dark mode</label>
+      <button id="darkToggle" class="chip btn-ghost" onclick="Views.toggleDark()">Off</button>
+    </div>
+    <button class="btn btn-primary self-start" onclick="Views.saveSettings()">Save settings</button>
+  </div>
+
+  <div class="card p-5 mb-5 flex flex-col gap-3">
+    <h3 class="font-bold text-[15px]">Demo data</h3>
+    <p class="text-[13px]" style="color:var(--slate);">Load sample data to explore the app, or clear it to start fresh.</p>
+    <div id="demoBadge"></div>
+    <div class="flex gap-2 flex-wrap">
+      <button class="btn btn-ghost" onclick="Demo.load()">Load demo data</button>
+      <button class="btn btn-danger" onclick="Demo.clear()">Clear demo data</button>
+    </div>
+  </div>
+
+  <div class="card p-5 mb-10 flex flex-col gap-3">
+    <h3 class="font-bold text-[15px]">Data backup</h3>
+    <div class="flex gap-2 flex-wrap">
+      <button class="btn btn-ghost" onclick="Backup.exportData()"><iconify-icon icon="ph:download-bold" class="align-[-2px] mr-1"></iconify-icon>Export data</button>
+      <label class="btn btn-ghost" style="cursor:pointer;">
+        <iconify-icon icon="ph:upload-bold" class="align-[-2px] mr-1"></iconify-icon>Import data
+        <input type="file" accept="application/json" class="hidden" onchange="Backup.importData(event)">
+      </label>
+      <button class="btn btn-danger" onclick="Backup.resetAll()"><iconify-icon icon="ph:trash-bold" class="align-[-2px] mr-1"></iconify-icon>Reset all data</button>
+    </div>
+  </div>
+</section>
+
+</main>
+  </div>
+</div>
+
+<!-- ============ BOTTOM NAV (mobile) ============ -->
+<nav class="fixed bottom-0 left-0 right-0 z-30 md:hidden" style="background:#fff; border-top:1px solid #000; padding-bottom:env(safe-area-inset-bottom,0px);">
+  <div class="flex px-2 pt-2">
+    <button class="bottomnav-item" data-view="home" onclick="Views.show('home')"><span class="bn-icon"><iconify-icon icon="ph:house-fill" style="font-size:20px;"></iconify-icon></span>Home</button>
+    <button class="bottomnav-item" data-view="tasks" onclick="Views.show('tasks')"><span class="bn-icon"><iconify-icon icon="ph:check-square-fill" style="font-size:20px;"></iconify-icon></span>Tasks</button>
+    <button class="bottomnav-item" data-view="study" onclick="Views.show('study')"><span class="bn-icon"><iconify-icon icon="ph:timer-fill" style="font-size:20px;"></iconify-icon></span>Study</button>
+    <button class="bottomnav-item" data-view="exams" onclick="Views.show('exams')"><span class="bn-icon"><iconify-icon icon="ph:exam-fill" style="font-size:20px;"></iconify-icon></span>Exams</button>
+    <button class="bottomnav-item" data-view="more" onclick="Views.show('more')"><span class="bn-icon"><iconify-icon icon="ph:dots-three-circle-fill" style="font-size:20px;"></iconify-icon></span>More</button>
+  </div>
+</nav>
+
+<!-- ============ FLOATING QUICK ADD (desktop) ============ -->
+<button class="hidden md:flex fixed bottom-8 right-8 z-30 w-14 h-14 rounded-full items-center justify-center" style="background:#000; color:#fff; border:1px solid #000;" onclick="Views.openQuickAdd()" aria-label="Quick add">
+  <iconify-icon icon="ph:plus-bold" style="font-size:24px;"></iconify-icon>
+</button>
+
+<!-- ============ MODAL ROOT ============ -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this)Modal.close()">
+  <div class="modal-box" id="modalBox"></div>
+</div>
+
+<!-- ============ FOCUS MODE ============ -->
+<div class="focus-mode" id="focusMode">
+  <div class="eyebrow mb-4" id="focusSubject">SUBJECT</div>
+  <div class="font-extrabold" style="font-size:15px; color:var(--slate);" id="focusTopic">Topic</div>
+  <div class="font-extrabold tabular-nums my-6" style="font-size:88px; color:var(--ink);" id="focusTimerDisplay">25:00</div>
+  <div class="flex gap-3">
+    <button class="btn btn-ghost" onclick="Timer.pause()" id="focusPauseBtn">Pause</button>
+    <button class="btn btn-danger" onclick="Timer.endFocusSession()">End session</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ===================== STORE ===================== */
+const Util = {
+  id: () => 'id-' + Date.now().toString(36) + Math.random().toString(36).slice(2,8),
+  todayISO: () => new Date().toISOString().slice(0,10),
+  fmtDate: (iso) => { if(!iso) return '—'; const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString(undefined,{month:'short',day:'numeric'}); },
+  fmtDuration: (min) => { min = Math.round(min||0); const h=Math.floor(min/60), m=min%60; return h>0 ? `${h}h ${m}m` : `${m}m`; },
+  daysUntil: (iso) => { if(!iso) return null; const d=new Date(iso+'T00:00:00'), t=new Date(Util.todayISO()+'T00:00:00'); return Math.round((d-t)/86400000); },
+  clamp: (n,a,b) => Math.max(a,Math.min(b,n)),
+  esc: (s) => (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])),
+};
+
+const DEFAULT_DATA = () => ({
+  settings: { name:'Student', defaultTimer:25, weekStart:'Monday', theme:'light', demoActive:false },
+  subjects: [], tasks: [], chapters: [], studySessions: [], timetable: [],
+  exams: [], notes: [], goals: [], habits: [], habitCompletions: []
+});
+
+const Store = {
+  data: null,
+  load(){
+    try{
+      const raw = localStorage.getItem('comtrack_data');
+      this.data = raw ? JSON.parse(raw) : DEFAULT_DATA();
+      for(const k of Object.keys(DEFAULT_DATA())) if(!(k in this.data)) this.data[k] = DEFAULT_DATA()[k];
+    }catch(e){ console.error('Load failed, resetting.', e); this.data = DEFAULT_DATA(); }
+  },
+  save(){
+    try{ localStorage.setItem('comtrack_data', JSON.stringify(this.data)); }
+    catch(e){ console.error('Save failed', e); Views.toast('Could not save — storage may be full.'); }
+  },
+  get(coll){ return this.data[coll] || []; },
+  add(coll,obj){ obj.id = Util.id(); obj.createdAt = Date.now(); this.data[coll].push(obj); this.save(); return obj; },
+  update(coll,id,patch){ const item=this.data[coll].find(x=>x.id===id); if(item){ Object.assign(item,patch); this.save(); } return item; },
+  remove(coll,id){ this.data[coll] = this.data[coll].filter(x=>x.id!==id); this.save(); },
+  findById(coll,id){ return this.data[coll].find(x=>x.id===id); },
+};
+
+/* ===================== CALCULATIONS ===================== */
+const Calc = {
+  subjectName(id){ const s=Store.findById('subjects',id); return s? s.name : 'General'; },
+  subjectChapters(id){ return Store.get('chapters').filter(c=>c.subjectId===id); },
+  subjectProgress(id){
+    const chs = Calc.subjectChapters(id);
+    if(!chs.length) return 0;
+    const done = chs.filter(c=>c.status==='completed').length;
+    return Math.round(done/chs.length*100);
+  },
+  subjectTasks(id){ return Store.get('tasks').filter(t=>t.subjectId===id); },
+  subjectStudyMinutes(id){ return Store.get('studySessions').filter(s=>s.subjectId===id).reduce((a,s)=>a+s.duration,0); },
+  totalStudyMinutes(){ return Store.get('studySessions').reduce((a,s)=>a+s.duration,0); },
+  todayStudyMinutes(){ const t=Util.todayISO(); return Store.get('studySessions').filter(s=>s.date.slice(0,10)===t).reduce((a,s)=>a+s.duration,0); },
+  tasksToday(){ const t=Util.todayISO(); return Store.get('tasks').filter(x=>x.dueDate===t); },
+  tasksTodayProgress(){ const list=Calc.tasksToday(); if(!list.length) return {pct:0,done:0,total:0}; const done=list.filter(x=>x.status==='completed').length; return {pct:Math.round(done/list.length*100), done, total:list.length}; },
+  studyStreak(){
+    const dates = new Set(Store.get('studySessions').map(s=>s.date.slice(0,10)));
+    let streak=0, d=new Date();
+    if(!dates.has(Util.todayISO())){ d.setDate(d.getDate()-1); }
+    while(true){ const iso=d.toISOString().slice(0,10); if(dates.has(iso)){ streak++; d.setDate(d.getDate()-1); } else break; }
+    return streak;
+  },
+  habitStreak(habitId){
+    const dates = new Set(Store.get('habitCompletions').filter(c=>c.habitId===habitId).map(c=>c.date));
+    let streak=0, d=new Date();
+    if(!dates.has(Util.todayISO())){ d.setDate(d.getDate()-1); }
+    while(true){ const iso=d.toISOString().slice(0,10); if(dates.has(iso)){ streak++; d.setDate(d.getDate()-1); } else break; }
+    return streak;
+  },
+  habitBestStreak(habitId){
+    const dates = [...new Set(Store.get('habitCompletions').filter(c=>c.habitId===habitId).map(c=>c.date))].sort();
+    let best=0, cur=0, prev=null;
+    for(const iso of dates){
+      const d = new Date(iso+'T00:00:00');
+      if(prev && (d-prev)===86400000){ cur++; } else { cur=1; }
+      best=Math.max(best,cur); prev=d;
+    }
+    return best;
+  },
+  examPrep(exam){
+    const chs = Store.get('chapters').filter(c => (exam.subjectIds||[]).includes(c.subjectId));
+    if(!chs.length) return 0;
+    const done = chs.filter(c=>c.status==='completed').length;
+    return Math.round(done/chs.length*100);
+  },
+  examSubjectBreakdown(exam){
+    return (exam.subjectIds||[]).map(sid => {
+      const chs = Store.get('chapters').filter(c=>c.subjectId===sid);
+      const done = chs.filter(c=>c.status==='completed').length;
+      return { subjectId:sid, name:Calc.subjectName(sid), done, total:chs.length };
+    });
+  },
+  overallCompletionRate(){
+    const tasks = Store.get('tasks'); if(!tasks.length) return 0;
+    return Math.round(tasks.filter(t=>t.status==='completed').length/tasks.length*100);
+  }
+};
+
+/* ===================== TOAST / MODAL ===================== */
+function toast(msg){ Views.toast(msg); }
+const Modal = {
+  open(html){ document.getElementById('modalBox').innerHTML = html; document.getElementById('modalBackdrop').classList.add('active'); },
+  close(){ document.getElementById('modalBackdrop').classList.remove('active'); document.getElementById('modalBox').innerHTML=''; }
+};
+
+/* ===================== TIMER ===================== */
+const Timer = {
+  totalSeconds: 25*60, remaining: 25*60, running:false, interval:null, subjectId:null, topic:'', ended:false,
+  init(){ this.totalSeconds = (Store.data.settings.defaultTimer||25)*60; this.remaining=this.totalSeconds; this.render(); },
+  setPreset(min){ if(this.running) return; this.totalSeconds=min*60; this.remaining=this.totalSeconds; this.ended=false; this.render(); },
+  setCustom(){ const v = prompt('Custom duration in minutes:', '30'); const n=parseInt(v,10); if(n>0 && n<=600){ this.totalSeconds=n*60; this.remaining=n*60; this.ended=false; this.render(); } },
+  start(){
+    if(this.running) return;
+    this.subjectId = document.getElementById('timerSubjectSelect').value || null;
+    this.topic = document.getElementById('timerTopic').value.trim();
+    this.running=true; this.ended=false;
+    this.interval = setInterval(()=>{
+      this.remaining--;
+      if(this.remaining<=0){ this.remaining=0; this.finish(); }
+      this.render();
+    },1000);
+    this.render();
+  },
+  pause(){ this.running=false; clearInterval(this.interval); this.render(); },
+  reset(){ this.pause(); this.remaining=this.totalSeconds; this.ended=false; this.render(); },
+  finish(){
+    this.pause();
+    if(!this.ended){
+      this.ended=true;
+      const minutes = Math.round(this.totalSeconds/60);
+      if(minutes>0){
+        Store.add('studySessions', { subjectId:this.subjectId, topic:this.topic||'Study session', duration:minutes, date:new Date().toISOString() });
+        Views.toast('Study session saved — ' + Util.fmtDuration(minutes));
+        Views.refreshAll();
+      }
+    }
+    if(document.getElementById('focusMode').classList.contains('active')) this.exitFocus();
+  },
+  fmt(sec){ const m=Math.floor(sec/60), s=sec%60; return String(m).padStart(2,'0')+':'+String(s).padStart(2,'0'); },
+  render(){
+    const disp = this.fmt(this.remaining);
+    const dEl = document.getElementById('timerDisplay'); if(dEl) dEl.textContent = disp;
+    const fEl = document.getElementById('focusTimerDisplay'); if(fEl) fEl.textContent = disp;
+    const label = document.getElementById('timerSubjectLabel');
+    if(label){
+      const sub = this.subjectId ? Calc.subjectName(this.subjectId) : null;
+      label.textContent = this.running ? (sub ? `Studying ${sub}` : 'Studying') : (sub ? `Ready — ${sub}` : 'Select a subject to begin');
+    }
+    const startBtn = document.getElementById('timerStartBtn');
+    if(startBtn) startBtn.textContent = this.running ? 'Running…' : (this.remaining<this.totalSeconds && this.remaining>0 ? 'Resume' : 'Start');
+    const fp = document.getElementById('focusPauseBtn'); if(fp) fp.textContent = this.running ? 'Pause' : 'Resume';
+  },
+  enterFocus(){
+    const sid = document.getElementById('timerSubjectSelect').value;
+    document.getElementById('focusSubject').textContent = sid ? Calc.subjectName(sid).toUpperCase() : 'FOCUS SESSION';
+    document.getElementById('focusTopic').textContent = document.getElementById('timerTopic').value || 'Deep work';
+    document.getElementById('focusMode').classList.add('active');
+    this.render();
+    if(!this.running) this.start();
+  },
+  exitFocus(){ document.getElementById('focusMode').classList.remove('active'); },
+  endFocusSession(){ this.finish(); this.exitFocus(); Views.refreshAll(); }
+};
+
+/* ===================== VIEWS ===================== */
+const Views = {
+  currentView:'home', taskFilter:'all', goalFilter:'today',
+  toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(this._tt); this._tt=setTimeout(()=>t.classList.remove('show'),2200); },
+
+  show(name){
+    this.currentView = name;
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    const el = document.getElementById('view-'+name); if(el) el.classList.add('active');
+    document.querySelectorAll('[data-view]').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+    window.scrollTo({top:0,behavior:'instant' in document.documentElement.style ? 'instant':'auto'});
+    this.refreshAll();
+  },
+
+  openSearch(){
+    const q = prompt('Search tasks, subjects, notes, exams, goals:');
+    if(q===null || !q.trim()) return;
+    const query = q.trim().toLowerCase();
+    const results = [];
+    Store.get('tasks').forEach(t=>{ if(t.title.toLowerCase().includes(query)) results.push('Task: '+t.title); });
+    Store.get('subjects').forEach(s=>{ if(s.name.toLowerCase().includes(query)) results.push('Subject: '+s.name); });
+    Store.get('chapters').forEach(c=>{ if(c.name.toLowerCase().includes(query)) results.push('Chapter: '+c.name); });
+    Store.get('notes').forEach(n=>{ if((n.title+n.content).toLowerCase().includes(query)) results.push('Note: '+n.title); });
+    Store.get('exams').forEach(e=>{ if(e.name.toLowerCase().includes(query)) results.push('Exam: '+e.name); });
+    Store.get('goals').forEach(g=>{ if(g.name.toLowerCase().includes(query)) results.push('Goal: '+g.name); });
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-3">Results for "${Util.esc(q)}"</h3>
+      <div class="flex flex-col gap-2">${ results.length ? results.map(r=>`<div class="card-sm p-3 text-[14px]">${Util.esc(r)}</div>`).join('') : '<p class="text-[13px]" style="color:var(--slate);">No matches found.</p>' }</div>
+      <button class="btn btn-ghost mt-4 w-full" onclick="Modal.close()">Close</button>
+    `);
+  },
+
+  openQuickAdd(){
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">Quick add</h3>
+      <div class="grid grid-cols-2 gap-3">
+        <button class="card-sm p-4 flex flex-col items-center gap-2" onclick="Modal.close();Views.openTaskForm()"><iconify-icon icon="ph:check-square-fill" style="font-size:22px;color:var(--accent);"></iconify-icon><span class="text-[13px] font-semibold">Task</span></button>
+        <button class="card-sm p-4 flex flex-col items-center gap-2" onclick="Modal.close();Views.show('study')"><iconify-icon icon="ph:timer-fill" style="font-size:22px;color:var(--accent);"></iconify-icon><span class="text-[13px] font-semibold">Study session</span></button>
+        <button class="card-sm p-4 flex flex-col items-center gap-2" onclick="Modal.close();Views.openNoteForm()"><iconify-icon icon="ph:notepad-fill" style="font-size:22px;color:var(--accent);"></iconify-icon><span class="text-[13px] font-semibold">Note</span></button>
+        <button class="card-sm p-4 flex flex-col items-center gap-2" onclick="Modal.close();Views.openExamForm()"><iconify-icon icon="ph:exam-fill" style="font-size:22px;color:var(--accent);"></iconify-icon><span class="text-[13px] font-semibold">Exam</span></button>
+        <button class="card-sm p-4 flex flex-col items-center gap-2" onclick="Modal.close();Views.openGoalForm()"><iconify-icon icon="ph:target-fill" style="font-size:22px;color:var(--accent);"></iconify-icon><span class="text-[13px] font-semibold">Goal</span></button>
+        <button class="card-sm p-4 flex flex-col items-center gap-2" onclick="Modal.close();Views.openHabitForm()"><iconify-icon icon="ph:fire-fill" style="font-size:22px;color:var(--accent);"></iconify-icon><span class="text-[13px] font-semibold">Habit</span></button>
+      </div>
+    `);
+  },
+
+  subjectOptions(selected){
+    return Store.get('subjects').map(s=>`<option value="${s.id}" ${s.id===selected?'selected':''}>${Util.esc(s.name)}</option>`).join('');
+  },
+
+  /* ---------- TASKS ---------- */
+  openTaskForm(id){
+    const t = id ? Store.findById('tasks',id) : null;
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">${t?'Edit task':'Add task'}</h3>
+      <div class="flex flex-col gap-3">
+        <div><label class="field-label">Title</label><input id="f_title" value="${t?Util.esc(t.title):''}" placeholder="e.g. Electricity — Numericals"></div>
+        <div><label class="field-label">Description</label><textarea id="f_desc" rows="2" placeholder="Optional details">${t?Util.esc(t.description):''}</textarea></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="field-label">Subject</label><select id="f_subject"><option value="">General</option>${Views.subjectOptions(t?t.subjectId:null)}</select></div>
+          <div><label class="field-label">Priority</label><select id="f_priority">
+            <option value="low" ${t&&t.priority==='low'?'selected':''}>Low</option>
+            <option value="medium" ${!t||t.priority==='medium'?'selected':''}>Medium</option>
+            <option value="high" ${t&&t.priority==='high'?'selected':''}>High</option>
+          </select></div>
+          <div><label class="field-label">Due date</label><input id="f_due" type="date" value="${t?t.dueDate||'':''}"></div>
+          <div><label class="field-label">Est. duration (min)</label><input id="f_dur" type="number" min="0" value="${t?t.duration||'':''}"></div>
+        </div>
+        <div><label class="field-label">Status</label><select id="f_status">
+          <option value="not-started" ${!t||t.status==='not-started'?'selected':''}>Not Started</option>
+          <option value="in-progress" ${t&&t.status==='in-progress'?'selected':''}>In Progress</option>
+          <option value="completed" ${t&&t.status==='completed'?'selected':''}>Completed</option>
+        </select></div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveTask('${id||''}')">Save task</button>
+        ${t?`<button class="btn btn-danger" onclick="Views.confirmDelete('tasks','${id}','task')">Delete</button>`:''}
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveTask(id){
+    const title = document.getElementById('f_title').value.trim();
+    if(!title){ Views.toast('Title is required.'); return; }
+    const payload = {
+      title, description: document.getElementById('f_desc').value.trim(),
+      subjectId: document.getElementById('f_subject').value || null,
+      priority: document.getElementById('f_priority').value,
+      dueDate: document.getElementById('f_due').value || null,
+      duration: parseInt(document.getElementById('f_dur').value,10) || 0,
+      status: document.getElementById('f_status').value,
+    };
+    if(id){ Store.update('tasks',id,payload); Views.toast('Task updated'); }
+    else { Store.add('tasks',payload); Views.toast('Task added'); }
+    Modal.close(); Views.refreshAll();
+  },
+  toggleTaskStatus(id){
+    const t = Store.findById('tasks',id);
+    Store.update('tasks',id,{status: t.status==='completed' ? 'not-started' : 'completed'});
+    Views.refreshAll();
+  },
+  setTaskFilter(f){ this.taskFilter=f; document.querySelectorAll('[data-taskfilter]').forEach(b=>b.classList.toggle('active',b.dataset.taskfilter===f)); this.renderTasks(); },
+  filteredTasks(){
+    let list = [...Store.get('tasks')];
+    const today = Util.todayISO();
+    if(this.taskFilter==='today') list = list.filter(t=>t.dueDate===today);
+    else if(this.taskFilter==='upcoming') list = list.filter(t=>t.dueDate && t.dueDate>today && t.status!=='completed');
+    else if(this.taskFilter==='overdue') list = list.filter(t=>t.dueDate && t.dueDate<today && t.status!=='completed');
+    else if(this.taskFilter==='completed') list = list.filter(t=>t.status==='completed');
+    const subj = document.getElementById('taskSubjectFilter'); if(subj && subj.value) list = list.filter(t=>t.subjectId===subj.value);
+    const pri = document.getElementById('taskPriorityFilter'); if(pri && pri.value) list = list.filter(t=>t.priority===pri.value);
+    const q = document.getElementById('taskSearch'); if(q && q.value.trim()) list = list.filter(t=>t.title.toLowerCase().includes(q.value.trim().toLowerCase()));
+    list.sort((a,b)=> (a.dueDate||'9999')<(b.dueDate||'9999') ? -1 : 1);
+    return list;
+  },
+  priorityColor(p){ return p==='high'?'#fff':p==='medium'?'#000':'#888'; },
+  priorityBg(p){ return p==='high'?'#000':p==='medium'?'#fff':'#f7f7f7'; },
+  priorityBorder(p){ return p==='medium'?'1px solid #000':'1px solid transparent'; },
+  priorityTextColor(p){ return p==='high'?'#000':p==='medium'?'#555':'#888'; },
+  taskCardHTML(t, highlight){
+    const overdue = t.dueDate && t.dueDate<Util.todayISO() && t.status!=='completed';
+    const done = t.status==='completed';
+    return `
+    <div class="${highlight&&!done?'card-hi':'card'} liftable p-5 snap-card" style="width:290px;${done?'opacity:.62;':''}">
+      <div class="flex items-center justify-between mb-2">
+        <span class="eyebrow">${Util.esc(Calc.subjectName(t.subjectId))}</span>
+        ${highlight&&!done?'<span class="chip" style="background:var(--accent-tint);color:var(--accent-deep);">Priority</span>':''}
+        ${done?'<iconify-icon icon="ph:check-circle-fill" style="color:var(--green);font-size:18px;"></iconify-icon>':''}
+      </div>
+      <div class="font-extrabold text-[16px] tracking-tight mb-1" style="${done?'text-decoration:line-through;color:var(--slate);':''}">${Util.esc(t.title)}</div>
+      ${t.description?`<p class="text-[13px] mb-2" style="color:var(--slate);">${Util.esc(t.description)}</p>`:''}
+      <div class="flex items-center gap-2 mb-3 flex-wrap">
+        <span class="chip" style="background:${Views.priorityBg(t.priority)};color:${Views.priorityColor(t.priority)};border:${Views.priorityBorder(t.priority)};">${t.priority.toUpperCase()} PRIORITY</span>
+        ${t.duration?`<span class="text-[12px] font-semibold" style="color:var(--slate);">${t.duration} min</span>`:''}
+        ${t.dueDate?`<span class="text-[12px] font-semibold" style="color:${overdue?'var(--red)':'var(--slate)'};">${overdue?'Overdue · ':''}${Util.fmtDate(t.dueDate)}</span>`:''}
+      </div>
+      <div class="flex gap-2">
+        <button class="btn ${done?'btn-ghost':'btn-primary'} flex-1 !py-2 !text-[13px]" onclick="Views.toggleTaskStatus('${t.id}')">${done?'Completed ✓':'Mark complete'}</button>
+        <button class="round-btn" onclick="Views.openTaskForm('${t.id}')" aria-label="Edit task"><iconify-icon icon="ph:pencil-simple-bold"></iconify-icon></button>
+      </div>
+    </div>`;
+  },
+  renderTasks(){
+    const subj = document.getElementById('taskSubjectFilter');
+    if(subj) subj.innerHTML = '<option value="">All subjects</option>' + Views.subjectOptions();
+    const list = this.filteredTasks();
+    const el = document.getElementById('taskList');
+    if(!list.length){ el.innerHTML = Views.emptyState('ph:check-square-offset','No tasks yet.','Add your first task to start planning your day.'); return; }
+    el.innerHTML = list.map(t=>`
+      <div class="card-sm p-4 flex items-center gap-3">
+        <button class="round-btn" style="border-color:${t.status==='completed'?'var(--green)':'var(--border)'};color:${t.status==='completed'?'var(--green)':'var(--slate)'};" onclick="Views.toggleTaskStatus('${t.id}')">
+          <iconify-icon icon="${t.status==='completed'?'ph:check-bold':'ph:circle'}"></iconify-icon>
+        </button>
+        <div class="flex-1 min-w-0">
+          <div class="font-bold text-[14px] truncate" style="${t.status==='completed'?'text-decoration:line-through;color:var(--slate);':''}">${Util.esc(t.title)}</div>
+          <div class="text-[12px] flex gap-2 flex-wrap mt-0.5" style="color:var(--slate);">
+            <span>${Util.esc(Calc.subjectName(t.subjectId))}</span>
+            ${t.dueDate?`<span>· ${Util.fmtDate(t.dueDate)}</span>`:''}
+            <span style="color:${Views.priorityTextColor(t.priority)};font-weight:700;">· ${t.priority}</span>
+          </div>
+        </div>
+        <button class="round-btn" onclick="Views.openTaskForm('${t.id}')"><iconify-icon icon="ph:pencil-simple-bold"></iconify-icon></button>
+      </div>
+    `).join('');
+  },
+
+  /* ---------- SUBJECTS ---------- */
+  openSubjectForm(id){
+    const s = id ? Store.findById('subjects',id) : null;
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">${s?'Edit subject':'Add subject'}</h3>
+      <label class="field-label">Subject name</label>
+      <input id="f_sname" value="${s?Util.esc(s.name):''}" placeholder="e.g. Physics">
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveSubject('${id||''}')">Save</button>
+        ${s?`<button class="btn btn-danger" onclick="Views.confirmDelete('subjects','${id}','subject (and its chapters)')">Delete</button>`:''}
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveSubject(id){
+    const name = document.getElementById('f_sname').value.trim();
+    if(!name){ Views.toast('Subject name is required.'); return; }
+    if(id) Store.update('subjects',id,{name}); else Store.add('subjects',{name});
+    Modal.close(); Views.toast('Subject saved'); Views.refreshAll();
+  },
+  subjectCardHTML(s, highlight){
+    const pct = Calc.subjectProgress(s.id);
+    const chs = Calc.subjectChapters(s.id);
+    const chDone = chs.filter(c=>c.status==='completed').length;
+    const mins = Calc.subjectStudyMinutes(s.id);
+    return `
+    <div class="${highlight?'card-hi':'card'} liftable p-5 snap-card cursor-pointer" style="width:250px;" onclick="Views.openSubjectDetail('${s.id}')">
+      <div class="eyebrow mb-2">${Util.esc(s.name.toUpperCase())}</div>
+      <div class="text-[13px] mb-1" style="color:var(--slate);">${chs.length? chDone+' / '+chs.length+' chapters' : 'No chapters yet'}</div>
+      <div class="text-[13px] mb-3" style="color:var(--slate);">${Util.fmtDuration(mins)} studied</div>
+      <div class="flex items-center justify-between mb-1">
+        <span class="font-extrabold text-[22px]">${pct}%</span>
+      </div>
+      <div class="progress-track h-2 mb-4"><div class="progress-fill h-2" style="width:${pct}%"></div></div>
+      <button class="text-[12px] font-bold flex items-center gap-1" style="color:var(--accent);" onclick="event.stopPropagation();Views.openSubjectDetail('${s.id}')">Open subject <iconify-icon icon="ph:arrow-right-bold" style="font-size:12px;"></iconify-icon></button>
+    </div>`;
+  },
+  openSubjectDetail(id){
+    const s = Store.findById('subjects',id);
+    const chs = Calc.subjectChapters(id);
+    const pct = Calc.subjectProgress(id);
+    const sessions = Store.get('studySessions').filter(x=>x.subjectId===id).sort((a,b)=>b.date.localeCompare(a.date)).slice(0,5);
+    Modal.open(`
+      <div class="flex items-center justify-between mb-1">
+        <div class="eyebrow">${Util.esc(s.name.toUpperCase())}</div>
+        <button class="round-btn" onclick="Modal.close()"><iconify-icon icon="ph:x-bold"></iconify-icon></button>
+      </div>
+      <div class="font-extrabold text-[22px] mb-1">${pct}% complete</div>
+      <div class="progress-track h-2 mb-4"><div class="progress-fill h-2" style="width:${pct}%"></div></div>
+      <div class="flex items-center justify-between mb-2">
+        <h4 class="font-bold text-[14px]">Chapters</h4>
+        <button class="text-[13px] font-semibold" style="color:var(--accent);" onclick="Views.openChapterForm(null,'${id}')">+ Add chapter</button>
+      </div>
+      <div class="flex flex-col gap-2 mb-4">
+        ${chs.length? chs.map(c=>Views.chapterRowHTML(c)).join('') : '<p class="text-[13px]" style="color:var(--slate);">No chapters yet.</p>'}
+      </div>
+      <h4 class="font-bold text-[14px] mb-2">Recent study sessions</h4>
+      <div class="flex flex-col gap-2 mb-4">
+        ${sessions.length? sessions.map(sess=>`<div class="text-[13px] flex justify-between"><span style="color:var(--slate);">${Util.esc(sess.topic)}</span><span class="font-semibold">${Util.fmtDuration(sess.duration)}</span></div>`).join('') : '<p class="text-[13px]" style="color:var(--slate);">No sessions yet.</p>'}
+      </div>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost flex-1" onclick="Views.openSubjectForm('${id}')">Edit subject</button>
+        <button class="btn btn-danger" onclick="Views.confirmDelete('subjects','${id}','subject (and its chapters)')">Delete</button>
+      </div>
+    `);
+  },
+  chapterRowHTML(c){
+    const icons = {'not-started':'ph:circle','learning':'ph:circle-half-fill','practicing':'ph:circle-half-fill','completed':'ph:check-circle-fill'};
+    const color = c.status==='completed' ? 'var(--green)' : c.status==='not-started' ? 'var(--slate)' : 'var(--accent)';
+    return `
+    <div class="card-sm p-3 flex items-center gap-3">
+      <button class="round-btn" style="color:${color};border-color:${color};" onclick="Views.cycleChapterStatus('${c.id}')"><iconify-icon icon="${icons[c.status]}"></iconify-icon></button>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-[13px] truncate">${Util.esc(c.name)}</div>
+        <div class="text-[11px]" style="color:var(--slate);">${c.status.replace('-',' ')} · confidence ${c.confidence}/5</div>
+      </div>
+      <button class="round-btn" onclick="Views.openChapterForm('${c.id}','${c.subjectId}')"><iconify-icon icon="ph:pencil-simple-bold"></iconify-icon></button>
+    </div>`;
+  },
+  cycleChapterStatus(id){
+    const order = ['not-started','learning','practicing','completed'];
+    const c = Store.findById('chapters',id);
+    const next = order[(order.indexOf(c.status)+1) % order.length];
+    Store.update('chapters',id,{status:next});
+    Views.refreshAll();
+    const sid = c.subjectId;
+    if(document.getElementById('modalBackdrop').classList.contains('active')) Views.openSubjectDetail(sid);
+  },
+  openChapterForm(id, subjectId){
+    const c = id ? Store.findById('chapters',id) : null;
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">${c?'Edit chapter':'Add chapter'}</h3>
+      <label class="field-label">Chapter name</label>
+      <input id="f_cname" value="${c?Util.esc(c.name):''}" placeholder="e.g. Electricity">
+      <div class="grid grid-cols-2 gap-3 mt-3">
+        <div><label class="field-label">Status</label><select id="f_cstatus">
+          ${['not-started','learning','practicing','completed'].map(v=>`<option value="${v}" ${c&&c.status===v?'selected':''}>${v.replace('-',' ')}</option>`).join('')}
+        </select></div>
+        <div><label class="field-label">Confidence</label><select id="f_cconf">
+          ${[1,2,3,4,5].map(v=>`<option value="${v}" ${c&&c.confidence===v?'selected':''}>${v} / 5</option>`).join('')}
+        </select></div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveChapter('${id||''}','${subjectId}')">Save</button>
+        ${c?`<button class="btn btn-danger" onclick="Views.confirmDelete('chapters','${id}','chapter')">Delete</button>`:''}
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveChapter(id, subjectId){
+    const name = document.getElementById('f_cname').value.trim();
+    if(!name){ Views.toast('Chapter name is required.'); return; }
+    const payload = { name, subjectId, status: document.getElementById('f_cstatus').value, confidence: parseInt(document.getElementById('f_cconf').value,10) };
+    if(id) Store.update('chapters',id,payload); else Store.add('chapters',payload);
+    Views.toast('Chapter saved'); Views.refreshAll(); Views.openSubjectDetail(subjectId);
+  },
+
+  /* ---------- STUDY SESSIONS / TIMETABLE ---------- */
+  renderSessions(){
+    const el = document.getElementById('sessionList'); if(!el) return;
+    const sessions = [...Store.get('studySessions')].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+    if(!sessions.length){ el.innerHTML = Views.emptyState('ph:timer','No study sessions yet.','Start a study session to begin building your study history.'); return; }
+    el.innerHTML = sessions.map(s=>`
+      <div class="card-sm p-3 flex items-center justify-between">
+        <div>
+          <div class="font-semibold text-[13px]">${Util.esc(Calc.subjectName(s.subjectId))} — ${Util.esc(s.topic)}</div>
+          <div class="text-[11px]" style="color:var(--slate);">${new Date(s.date).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div>
+        </div>
+        <span class="font-bold text-[13px]">${Util.fmtDuration(s.duration)}</span>
+      </div>`).join('');
+  },
+  openTimetableForm(){
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">Add study block</h3>
+      <div class="flex flex-col gap-3">
+        <div><label class="field-label">Day</label><select id="f_day">${['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'].map(d=>`<option>${d}</option>`).join('')}</select></div>
+        <div><label class="field-label">Subject</label><select id="f_tsubject"><option value="">General</option>${Views.subjectOptions()}</select></div>
+        <div><label class="field-label">Topic</label><input id="f_ttopic" placeholder="Optional"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="field-label">Start</label><input id="f_tstart" type="time" value="16:00"></div>
+          <div><label class="field-label">End</label><input id="f_tend" type="time" value="17:00"></div>
+        </div>
+        <div><label class="field-label">Note</label><input id="f_tnote" placeholder="Optional"></div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveTimetable()">Save block</button>
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveTimetable(){
+    const day = document.getElementById('f_day').value;
+    const start = document.getElementById('f_tstart').value, end = document.getElementById('f_tend').value;
+    if(!start || !end){ Views.toast('Start and end time are required.'); return; }
+    Store.add('timetable', { day, subjectId: document.getElementById('f_tsubject').value||null, topic: document.getElementById('f_ttopic').value.trim(), start, end, note: document.getElementById('f_tnote').value.trim() });
+    Modal.close(); Views.toast('Block added'); Views.refreshAll();
+  },
+  renderTimetable(){
+    const el = document.getElementById('timetableScroller'); if(!el) return;
+    const days = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    el.innerHTML = days.map(day=>{
+      const blocks = Store.get('timetable').filter(t=>t.day===day).sort((a,b)=>a.start.localeCompare(b.start));
+      return `<div class="card-sm p-4 snap-card" style="width:190px;">
+        <div class="eyebrow mb-2">${day.slice(0,3).toUpperCase()}</div>
+        ${blocks.length ? blocks.map(b=>`
+          <div class="mb-2 pb-2" style="border-bottom:1px solid var(--border);">
+            <div class="text-[12px] font-bold">${b.start}–${b.end}</div>
+            <div class="text-[12px]" style="color:var(--slate);">${Util.esc(Calc.subjectName(b.subjectId))}${b.topic?' · '+Util.esc(b.topic):''}</div>
+          </div>`).join('') : `<p class="text-[12px]" style="color:var(--slate);">No blocks.</p>`}
+      </div>`;
+    }).join('');
+  },
+
+  /* ---------- NOTES ---------- */
+  openNoteForm(id){
+    const n = id ? Store.findById('notes',id) : null;
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">${n?'Edit note':'Add note'}</h3>
+      <div class="flex flex-col gap-3">
+        <div><label class="field-label">Title</label><input id="f_ntitle" value="${n?Util.esc(n.title):''}" placeholder="Note title"></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="field-label">Subject</label><select id="f_nsubject"><option value="">General</option>${Views.subjectOptions(n?n.subjectId:null)}</select></div>
+          <div><label class="field-label">Topic</label><input id="f_ntopic" value="${n?Util.esc(n.topic||''):''}" placeholder="Optional"></div>
+        </div>
+        <div><label class="field-label">Content</label><textarea id="f_ncontent" rows="5" placeholder="Write your note...">${n?Util.esc(n.content):''}</textarea></div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveNote('${id||''}')">Save note</button>
+        ${n?`<button class="btn btn-danger" onclick="Views.confirmDelete('notes','${id}','note')">Delete</button>`:''}
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveNote(id){
+    const title = document.getElementById('f_ntitle').value.trim();
+    if(!title){ Views.toast('Title is required.'); return; }
+    const payload = { title, subjectId: document.getElementById('f_nsubject').value||null, topic: document.getElementById('f_ntopic').value.trim(), content: document.getElementById('f_ncontent').value.trim(), date: Util.todayISO() };
+    if(id) Store.update('notes',id,payload); else Store.add('notes',payload);
+    Modal.close(); Views.toast('Note saved'); Views.refreshAll();
+  },
+  renderNotes(){
+    const el = document.getElementById('noteGrid'); if(!el) return;
+    const q = (document.getElementById('noteSearch')?.value||'').toLowerCase();
+    let notes = [...Store.get('notes')].sort((a,b)=>b.date.localeCompare(a.date));
+    if(q) notes = notes.filter(n=> (n.title+n.content).toLowerCase().includes(q));
+    if(!notes.length){ el.innerHTML = Views.emptyState('ph:notepad','No notes yet.','Create a note to capture what you have learned.'); return; }
+    el.innerHTML = notes.map(n=>`
+      <div class="card-sm liftable p-4 cursor-pointer" onclick="Views.openNoteForm('${n.id}')">
+        <div class="eyebrow mb-1">${Util.esc(Calc.subjectName(n.subjectId))}</div>
+        <div class="font-bold text-[14px] mb-1 truncate">${Util.esc(n.title)}</div>
+        <p class="text-[12px] line-clamp-3" style="color:var(--slate);">${Util.esc(n.content)}</p>
+        <div class="text-[11px] mt-2" style="color:var(--slate);">${Util.fmtDate(n.date)}</div>
+      </div>`).join('');
+  },
+
+  /* ---------- GOALS ---------- */
+  setGoalFilter(f){ this.goalFilter=f; document.querySelectorAll('[data-goalfilter]').forEach(b=>b.classList.toggle('active',b.dataset.goalfilter===f)); this.renderGoals(); },
+  openGoalForm(id){
+    const g = id ? Store.findById('goals',id) : null;
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">${g?'Edit goal':'Add goal'}</h3>
+      <div class="flex flex-col gap-3">
+        <div><label class="field-label">Goal name</label><input id="f_gname" value="${g?Util.esc(g.name):''}" placeholder="e.g. Complete Physics revision"></div>
+        <div><label class="field-label">Description</label><textarea id="f_gdesc" rows="2" placeholder="Optional">${g?Util.esc(g.description||''):''}</textarea></div>
+        <div class="grid grid-cols-2 gap-3">
+          <div><label class="field-label">Category</label><select id="f_gcat">
+            <option value="today" ${g&&g.category==='today'?'selected':''}>Today</option>
+            <option value="week" ${g&&g.category==='week'?'selected':''}>This Week</option>
+            <option value="long" ${g&&g.category==='long'?'selected':''}>Long Term</option>
+          </select></div>
+          <div><label class="field-label">Target date</label><input id="f_gdate" type="date" value="${g?g.targetDate||'':''}"></div>
+        </div>
+        <div>
+          <label class="field-label">Progress: <span id="f_gprogval">${g?g.progress:0}</span>%</label>
+          <input id="f_gprogress" type="range" min="0" max="100" value="${g?g.progress:0}" oninput="document.getElementById('f_gprogval').textContent=this.value">
+        </div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveGoal('${id||''}')">Save goal</button>
+        ${g?`<button class="btn btn-danger" onclick="Views.confirmDelete('goals','${id}','goal')">Delete</button>`:''}
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveGoal(id){
+    const name = document.getElementById('f_gname').value.trim();
+    if(!name){ Views.toast('Goal name is required.'); return; }
+    const progress = parseInt(document.getElementById('f_gprogress').value,10) || 0;
+    const payload = { name, description: document.getElementById('f_gdesc').value.trim(), category: document.getElementById('f_gcat').value, targetDate: document.getElementById('f_gdate').value||null, progress, completed: progress>=100 };
+    if(id) Store.update('goals',id,payload); else Store.add('goals',payload);
+    Modal.close(); Views.toast(progress>=100?'Goal completed! 🎉':'Goal saved'); Views.refreshAll();
+  },
+  adjustGoal(id, delta){
+    const g = Store.findById('goals',id);
+    const progress = Util.clamp((g.progress||0)+delta,0,100);
+    Store.update('goals',id,{progress, completed: progress>=100});
+    Views.refreshAll();
+  },
+  goalCardHTML(g, idx){
+    const num = String((idx||0)+1).padStart(2,'0');
+    return `
+    <div class="card-sm liftable p-4 snap-card" style="width:260px;">
+      <div class="flex items-start justify-between mb-3">
+        <span class="text-[11px] font-extrabold" style="color:var(--muted);">${num}</span>
+        ${g.completed?'<span class="chip" style="background:#000;color:#fff;">✓ COMPLETED</span>':`<span class="eyebrow">${g.category==='today'?'TODAY':g.category==='week'?'THIS WEEK':'LONG TERM'}</span>`}
+      </div>
+      <div class="font-bold text-[14px] mb-3">${Util.esc(g.name)}</div>
+      <div class="flex items-end justify-between mb-2">
+        <span class="font-extrabold" style="font-size:26px;line-height:1;">${g.progress}%</span>
+        ${g.targetDate?`<span class="text-[11px] font-semibold" style="color:var(--slate);">TARGET · ${Util.fmtDate(g.targetDate).toUpperCase()}</span>`:''}
+      </div>
+      <div class="progress-track h-2 mb-3"><div class="progress-fill h-2" style="width:${g.progress}%"></div></div>
+      <div class="flex items-center gap-2">
+        <button class="btn btn-primary !py-1.5 !px-3 !text-[12px] flex-1" onclick="Views.quickUpdateGoal('${g.id}')">UPDATE</button>
+        <button class="btn btn-ghost !py-1.5 !px-3 !text-[12px] flex-1" onclick="Views.openGoalForm('${g.id}')">EDIT</button>
+        <button class="round-btn danger" style="width:32px;height:32px;" onclick="Views.confirmDelete('goals','${g.id}','goal')" aria-label="Delete goal"><iconify-icon icon="ph:trash-bold"></iconify-icon></button>
+      </div>
+    </div>`;
+  },
+  quickUpdateGoal(id){
+    const g = Store.findById('goals',id); if(!g) return;
+    const v = prompt('New progress for "'+g.name+'" (0-100):', String(g.progress));
+    if(v===null) return;
+    const n = Util.clamp(parseInt(v,10)||0, 0, 100);
+    Store.update('goals', id, {progress:n, completed:n>=100});
+    Views.toast(n>=100 ? 'Goal completed! 🎉' : 'Progress updated');
+    Views.refreshAll();
+  },
+  renderGoals(){
+    const list = Store.get('goals').filter(g=>g.category===this.goalFilter);
+    const el = document.getElementById('goalListFull'); if(!el) return;
+    if(!list.length){ el.innerHTML = Views.emptyState('ph:target','No goals yet.','Add a goal and track it to completion.'); return; }
+    el.innerHTML = `<div class="grid grid-cols-1 md:grid-cols-3 gap-3">${list.map((g,i)=>Views.goalCardHTML(g,i)).join('')}</div>`;
+  },
+
+  /* ---------- HABITS ---------- */
+  openHabitForm(id){
+    const h = id ? Store.findById('habits',id) : null;
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">${h?'Edit habit':'Add habit'}</h3>
+      <label class="field-label">Habit name</label>
+      <input id="f_hname" value="${h?Util.esc(h.name):''}" placeholder="e.g. Revision">
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveHabit('${id||''}')">Save</button>
+        ${h?`<button class="btn btn-danger" onclick="Views.confirmDelete('habits','${id}','habit')">Delete</button>`:''}
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveHabit(id){
+    const name = document.getElementById('f_hname').value.trim();
+    if(!name){ Views.toast('Habit name is required.'); return; }
+    if(id) Store.update('habits',id,{name}); else Store.add('habits',{name});
+    Modal.close(); Views.toast('Habit saved'); Views.refreshAll();
+  },
+  toggleHabitToday(id){
+    const today = Util.todayISO();
+    const existing = Store.get('habitCompletions').find(c=>c.habitId===id && c.date===today);
+    if(existing) Store.remove('habitCompletions', existing.id);
+    else Store.add('habitCompletions', {habitId:id, date:today});
+    Views.refreshAll();
+  },
+  renderHabits(){
+    const el = document.getElementById('habitList'); if(!el) return;
+    const habits = Store.get('habits');
+    if(!habits.length){ el.innerHTML = Views.emptyState('ph:fire','No habits yet.','Add a habit to start building a streak.'); return; }
+    const today = new Date();
+    el.innerHTML = habits.map(h=>{
+      const cells = [];
+      for(let i=6;i>=0;i--){
+        const d = new Date(today); d.setDate(d.getDate()-i);
+        const iso = d.toISOString().slice(0,10);
+        const done = Store.get('habitCompletions').some(c=>c.habitId===h.id && c.date===iso);
+        cells.push(`<div class="habit-cell ${done?'done':''}" title="${iso}">${done?'<iconify-icon icon="ph:check-bold" style="color:#fff;font-size:14px;"></iconify-icon>':''}</div>`);
+      }
+      const doneToday = Store.get('habitCompletions').some(c=>c.habitId===h.id && c.date===Util.todayISO());
+      return `
+      <div class="card-sm p-4 flex items-center gap-3 flex-wrap">
+        <div class="flex-1 min-w-[120px]">
+          <div class="font-bold text-[14px]">${Util.esc(h.name)}</div>
+          <div class="text-[11px]" style="color:var(--slate);">Streak ${Calc.habitStreak(h.id)} · Best ${Calc.habitBestStreak(h.id)}</div>
+        </div>
+        <div class="flex gap-1">${cells.join('')}</div>
+        <button class="btn ${doneToday?'btn-ghost':'btn-primary'} !py-1.5 !px-3 !text-[12px]" onclick="Views.toggleHabitToday('${h.id}')">${doneToday?'Done ✓':'Mark today'}</button>
+        <button class="round-btn" onclick="Views.openHabitForm('${h.id}')"><iconify-icon icon="ph:pencil-simple-bold"></iconify-icon></button>
+      </div>`;
+    }).join('');
+  },
+
+  /* ---------- EXAMS ---------- */
+  openExamForm(id){
+    const e = id ? Store.findById('exams',id) : null;
+    const subjects = Store.get('subjects');
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-4">${e?'Edit exam':'Add exam'}</h3>
+      <div class="flex flex-col gap-3">
+        <div><label class="field-label">Exam name</label><input id="f_ename" value="${e?Util.esc(e.name):''}" placeholder="e.g. Science Final"></div>
+        <div><label class="field-label">Date</label><input id="f_edate" type="date" value="${e?e.date:''}"></div>
+        <div>
+          <label class="field-label">Subjects</label>
+          <div class="flex flex-col gap-1 max-h-[140px] overflow-y-auto p-2" style="border:1px solid var(--border);border-radius:0;">
+            ${subjects.length? subjects.map(s=>`<label class="flex items-center gap-2 text-[13px]"><input type="checkbox" value="${s.id}" class="!w-auto exam-subject-chk" ${e&&(e.subjectIds||[]).includes(s.id)?'checked':''}> ${Util.esc(s.name)}</label>`).join('') : '<span class="text-[12px]" style="color:var(--slate);">Add subjects first.</span>'}
+          </div>
+        </div>
+        <div><label class="field-label">Notes</label><textarea id="f_enotes" rows="2" placeholder="Optional">${e?Util.esc(e.notes||''):''}</textarea></div>
+      </div>
+      <div class="flex gap-2 mt-5">
+        <button class="btn btn-primary flex-1" onclick="Views.saveExam('${id||''}')">Save exam</button>
+        ${e?`<button class="btn btn-danger" onclick="Views.confirmDelete('exams','${id}','exam')">Delete</button>`:''}
+        <button class="btn btn-ghost" onclick="Modal.close()">Cancel</button>
+      </div>
+    `);
+  },
+  saveExam(id){
+    const name = document.getElementById('f_ename').value.trim();
+    const date = document.getElementById('f_edate').value;
+    if(!name || !date){ Views.toast('Exam name and date are required.'); return; }
+    const subjectIds = [...document.querySelectorAll('.exam-subject-chk:checked')].map(c=>c.value);
+    const payload = { name, date, subjectIds, notes: document.getElementById('f_enotes').value.trim() };
+    if(id) Store.update('exams',id,payload); else Store.add('exams',payload);
+    Modal.close(); Views.toast('Exam saved'); Views.refreshAll();
+  },
+  examCardHTML(e, highlight){
+    const days = Util.daysUntil(e.date);
+    const pct = Calc.examPrep(e);
+    const subjNames = (e.subjectIds||[]).map(id=>Calc.subjectName(id));
+    const past = days!==null && days<0;
+    const breakdown = Calc.examSubjectBreakdown(e);
+    const chDone = breakdown.reduce((a,b)=>a+b.done,0), chTotal = breakdown.reduce((a,b)=>a+b.total,0);
+    return `
+    <div class="${highlight?'card-hi':'card'} liftable p-5 snap-card" style="width:270px;">
+      <div class="flex items-center justify-between mb-3">
+        <span class="eyebrow">${highlight?'NEXT EXAM':(subjNames.length? Util.esc(subjNames[0]).toUpperCase() : 'EXAM')}</span>
+        ${highlight?'<span class="chip" style="background:var(--accent-tint);color:var(--accent-deep);">Next</span>':''}
+      </div>
+      <div class="font-extrabold text-[16px] mb-3">${Util.esc(e.name)}</div>
+      <div class="flex items-end gap-2 mb-3">
+        <span class="font-extrabold tabular-nums" style="font-size:40px;line-height:.85;color:${past?'var(--slate)':'var(--accent-deep)'};">${past?'—':(days===0?'0':days)}</span>
+        <span class="font-bold text-[12px] mb-1" style="color:var(--slate);letter-spacing:.08em;">${past?'PAST EXAM':(days===0?'TODAY':'DAYS')}</span>
+      </div>
+      <div class="text-[12px] mb-3" style="color:var(--slate);">${subjNames.map(Util.esc).join(' · ')||'No subjects linked'}</div>
+      <div class="flex items-center justify-between mb-1"><span class="text-[12px] font-semibold">${pct}% prepared</span>${chTotal?`<span class="text-[11px]" style="color:var(--slate);">${chDone} / ${chTotal} chapters</span>`:''}</div>
+      <div class="progress-track h-2 mb-4"><div class="progress-fill h-2" style="width:${pct}%"></div></div>
+      <button class="btn btn-ghost w-full !text-[13px]" onclick="Views.openExamDetail('${e.id}')">View preparation <iconify-icon icon="ph:arrow-right-bold" style="font-size:12px;" class="align-[-2px]"></iconify-icon></button>
+    </div>`;
+  },
+  openExamDetail(id){
+    const e = Store.findById('exams',id);
+    const days = Util.daysUntil(e.date);
+    const pct = Calc.examPrep(e);
+    const breakdown = Calc.examSubjectBreakdown(e);
+    Modal.open(`
+      <div class="flex items-center justify-between mb-1">
+        <div class="eyebrow">EXAM</div>
+        <button class="round-btn" onclick="Modal.close()"><iconify-icon icon="ph:x-bold"></iconify-icon></button>
+      </div>
+      <div class="font-extrabold text-[20px] mb-1">${Util.esc(e.name)}</div>
+      <div class="text-[14px] mb-3" style="color:var(--slate);">${days>=0? days+' days remaining' : 'This exam has passed'}</div>
+      <div class="font-extrabold text-[26px] mb-1">${pct}% prepared</div>
+      <div class="progress-track h-2 mb-4"><div class="progress-fill h-2" style="width:${pct}%"></div></div>
+      <div class="flex flex-col gap-2 mb-4">
+        ${breakdown.length? breakdown.map(b=>`
+          <div class="flex items-center justify-between text-[13px]">
+            <span>${Util.esc(b.name)}</span><span class="font-semibold">${b.done} / ${b.total} chapters</span>
+          </div>`).join('') : '<p class="text-[13px]" style="color:var(--slate);">No subjects linked to this exam.</p>'}
+      </div>
+      ${e.notes?`<p class="text-[13px] mb-4" style="color:var(--slate);">${Util.esc(e.notes)}</p>`:''}
+      <div class="flex gap-2">
+        <button class="btn btn-ghost flex-1" onclick="Views.openExamForm('${id}')">Edit exam</button>
+        <button class="btn btn-danger" onclick="Views.confirmDelete('exams','${id}','exam')">Delete</button>
+      </div>
+    `);
+  },
+  renderExams(){
+    const exams = [...Store.get('exams')].sort((a,b)=>a.date.localeCompare(b.date));
+    const upcoming = exams.filter(e=>Util.daysUntil(e.date)>=0);
+    const past = exams.filter(e=>Util.daysUntil(e.date)<0);
+
+    const homeScroller = document.getElementById('homeExamScroller');
+    if(homeScroller){
+      if(!upcoming.length) homeScroller.innerHTML = Views.emptyState('ph:exam','No upcoming exams.','Add an exam to track your preparation.');
+      else homeScroller.innerHTML = upcoming.slice(0,5).map((e,i)=>Views.examCardHTML(e,i===0)).join('');
+    }
+    const full = document.getElementById('examListFull');
+    if(full){
+      let html = '';
+      html += `<h3 class="font-bold text-[15px] mb-2">Upcoming</h3>`;
+      html += upcoming.length ? `<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6">${upcoming.map((e,i)=>Views.examCardHTML(e,i===0)).join('')}</div>` : `<div class="mb-6">${Views.emptyState('ph:exam','No upcoming exams.','Add an exam to track your preparation.')}</div>`;
+      if(past.length){
+        html += `<h3 class="font-bold text-[15px] mb-2">Past</h3>`;
+        html += `<div class="grid grid-cols-1 md:grid-cols-3 gap-3">${past.map(e=>Views.examCardHTML(e,false)).join('')}</div>`;
+      }
+      full.innerHTML = html;
+    }
+  },
+
+  /* ---------- EMPTY STATE ---------- */
+  emptyState(icon, title, sub){
+    return `<div class="card-sm p-8 flex flex-col items-center text-center" style="width:100%;">
+      <iconify-icon icon="${icon}" style="font-size:28px;color:var(--slate);"></iconify-icon>
+      <div class="font-bold text-[14px] mt-3">${title}</div>
+      <div class="text-[12px] mt-1" style="color:var(--slate);max-width:240px;">${sub}</div>
+    </div>`;
+  },
+
+  /* ---------- DELETE CONFIRM ---------- */
+  confirmDelete(coll, id, label){
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-2">Delete this ${label}?</h3>
+      <p class="text-[13px] mb-5" style="color:var(--slate);">This cannot be undone.</p>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost flex-1" onclick="Modal.close()">Cancel</button>
+        <button class="btn btn-danger flex-1" onclick="Views.performDelete('${coll}','${id}')">Delete</button>
+      </div>
+    `);
+  },
+  performDelete(coll,id){
+    if(coll==='subjects'){
+      Store.data.chapters = Store.data.chapters.filter(c=>c.subjectId!==id);
+      Store.data.tasks.forEach(t=>{ if(t.subjectId===id) t.subjectId=null; });
+      Store.data.studySessions.forEach(s=>{ if(s.subjectId===id) s.subjectId=null; });
+      Store.data.exams.forEach(e=>{ e.subjectIds = (e.subjectIds||[]).filter(sid=>sid!==id); });
+      Store.save();
+    }
+    if(coll==='habits'){ Store.data.habitCompletions = Store.data.habitCompletions.filter(c=>c.habitId!==id); Store.save(); }
+    Store.remove(coll,id);
+    Modal.close(); Views.toast('Deleted'); Views.refreshAll();
+  },
+
+  /* ---------- SETTINGS ---------- */
+  toggleDark(){
+    Store.data.settings.theme = Store.data.settings.theme==='dark' ? 'light' : 'dark';
+    Store.save(); Views.applyTheme(); Views.loadSettingsForm();
+  },
+  applyTheme(){
+    const dark = Store.data.settings.theme==='dark';
+    document.documentElement.style.setProperty('--bg', dark? '#000000':'#ffffff');
+    document.documentElement.style.setProperty('--card', dark? '#000000':'#ffffff');
+    document.documentElement.style.setProperty('--ink', dark? '#ffffff':'#000000');
+    document.documentElement.style.setProperty('--slate', dark? '#aaaaaa':'#555555');
+    document.documentElement.style.setProperty('--muted', dark? '#777777':'#888888');
+    document.documentElement.style.setProperty('--border', dark? '#2a2a2a':'#e5e5e5');
+    document.documentElement.style.setProperty('--icon-border', dark? '#333333':'#d5d5d5');
+    document.documentElement.style.setProperty('--accent-tint', dark? '#111111':'#f7f7f7');
+    document.documentElement.style.setProperty('--accent-light', dark? '#1a1a1a':'#e5e5e5');
+    document.documentElement.style.setProperty('--accent', dark? '#ffffff':'#000000');
+    document.documentElement.style.setProperty('--accent-hover', dark? '#dddddd':'#222222');
+  },
+  loadSettingsForm(){
+    document.getElementById('settingName').value = Store.data.settings.name||'';
+    document.getElementById('settingTimer').value = Store.data.settings.defaultTimer||25;
+    document.getElementById('settingWeekStart').value = Store.data.settings.weekStart||'Monday';
+    document.getElementById('darkToggle').textContent = Store.data.settings.theme==='dark' ? 'On' : 'Off';
+  },
+  saveSettings(){
+    Store.data.settings.name = document.getElementById('settingName').value.trim() || 'Student';
+    Store.data.settings.defaultTimer = parseInt(document.getElementById('settingTimer').value,10) || 25;
+    Store.data.settings.weekStart = document.getElementById('settingWeekStart').value;
+    Store.save();
+    Views.toast('Settings saved');
+    Views.refreshAll();
+  },
+
+  /* ---------- MASTER REFRESH ---------- */
+  refreshAll(){
+    document.getElementById('navStudentName').textContent = Store.data.settings.name || 'Student';
+    Views.renderHero();
+    Views.renderSidebarStats();
+
+    // progress card
+    const p = Calc.tasksTodayProgress();
+    document.getElementById('progressCard').innerHTML = `
+      <div class="eyebrow mb-1">Today's Progress</div>
+      <div class="font-extrabold text-[36px] mb-1">${p.pct}%</div>
+      <div class="text-[13px] mb-3" style="color:var(--slate);">${p.done} / ${p.total} tasks completed</div>
+      <div class="progress-track h-2 mb-4"><div class="progress-fill h-2" style="width:${p.pct}%"></div></div>
+      <div class="grid grid-cols-3 gap-2 text-center">
+        <div><div class="font-extrabold text-[15px]">${Util.fmtDuration(Calc.todayStudyMinutes())}</div><div class="text-[10px]" style="color:var(--slate);">Study time</div></div>
+        <div><div class="font-extrabold text-[15px]">${Calc.studyStreak()}d</div><div class="text-[10px]" style="color:var(--slate);">Streak</div></div>
+        <div><div class="font-extrabold text-[15px]">${Views.nextExamLabel()}</div><div class="text-[10px]" style="color:var(--slate);">Upcoming</div></div>
+      </div>`;
+
+    // home task scroller
+    const homeTasks = document.getElementById('homeTaskScroller');
+    if(homeTasks){
+      const todays = [...Store.get('tasks')].filter(t=>t.status!=='completed').sort((a,b)=>{
+        const pri = {high:0,medium:1,low:2}; return (pri[a.priority]-pri[b.priority]) || ((a.dueDate||'9999')<(b.dueDate||'9999')?-1:1);
+      }).slice(0,8);
+      homeTasks.innerHTML = todays.length? todays.map((t,i)=>Views.taskCardHTML(t,i===0)).join('') : Views.emptyState('ph:check-square-offset','No tasks yet.','Add your first task to start planning your day.');
+    }
+    // home subject scroller
+    const homeSub = document.getElementById('homeSubjectScroller');
+    const subjects = Store.get('subjects');
+    const subjHTML = subjects.length ? subjects.map((s,i)=>Views.subjectCardHTML(s,i===0)).join('') : Views.emptyState('ph:books','No subjects yet.','Add a subject to start tracking chapters.');
+    if(homeSub) homeSub.innerHTML = subjHTML;
+    const studySub = document.getElementById('studySubjectScroller');
+    if(studySub) studySub.innerHTML = subjHTML;
+
+    // home goal scroller
+    const homeGoal = document.getElementById('homeGoalScroller');
+    if(homeGoal){
+      const goals = Store.get('goals').slice(0,8);
+      homeGoal.innerHTML = goals.length ? goals.map((g,i)=>Views.goalCardHTML(g,i)).join('') : Views.emptyState('ph:target','No goals yet.','Add your first goal.');
+    }
+
+    // timer subject select (preserve selection)
+    document.querySelectorAll('#timerSubjectSelect').forEach(sel=>{
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">General</option>' + Views.subjectOptions();
+      if(cur) sel.value = cur;
+    });
+
+    this.renderTasks();
+    this.renderSessions();
+    this.renderTimetable();
+    this.renderNotes();
+    this.renderHabits();
+    this.renderExams();
+    this.renderGoals();
+    this.renderAnalytics();
+
+    // demo badge
+    const badge = document.getElementById('demoBadge');
+    if(badge) badge.innerHTML = Store.data.settings.demoActive ? '<span class="chip" style="background:var(--accent-tint);color:var(--accent-deep);">Demo Data active</span>' : '';
+  },
+  scrollCarousel(id, dir){
+    const el = document.getElementById(id); if(!el) return;
+    const card = el.querySelector('.snap-card');
+    const amount = card ? card.offsetWidth + 20 : 300;
+    el.scrollBy({left: dir*amount, behavior:'smooth'});
+  },
+  renderHero(){
+    const g = document.getElementById('heroGreeting');
+    const d = document.getElementById('heroDate');
+    if(!g && !d) return;
+    if(g) g.textContent = 'TODAY';
+    if(d){
+      const now = new Date();
+      const pad = n => String(n).padStart(2,'0');
+      d.textContent = pad(now.getMonth()+1)+' / '+pad(now.getDate())+' / '+now.getFullYear();
+    }
+  },
+  renderSidebarStats(){
+    const el = document.getElementById('sidebarStats'); if(!el) return;
+    const streak = Calc.studyStreak();
+    el.innerHTML = `
+      <div class="sidebar-stat">
+        <div class="flex items-center gap-2 mb-1">
+          <iconify-icon icon="ph:fire-fill" style="color:var(--accent);font-size:16px;"></iconify-icon>
+          <span class="font-extrabold text-[15px]">${streak} day${streak===1?'':'s'}</span>
+        </div>
+        <div class="text-[11px]" style="color:var(--slate);">Study streak</div>
+      </div>`;
+  },
+  nextExamLabel(){
+    const upcoming = Store.get('exams').filter(e=>Util.daysUntil(e.date)>=0).sort((a,b)=>a.date.localeCompare(b.date));
+    if(!upcoming.length) return '—';
+    const e = upcoming[0]; const d = Util.daysUntil(e.date);
+    return d+'d';
+  },
+
+  /* ---------- ANALYTICS ---------- */
+  renderAnalytics(){
+    const grid = document.getElementById('statGrid'); if(!grid) return;
+    const stats = [
+      {label:'Study time', value: Util.fmtDuration(Calc.totalStudyMinutes())},
+      {label:'Tasks completed', value: Store.get('tasks').filter(t=>t.status==='completed').length},
+      {label:'Completion rate', value: Calc.overallCompletionRate()+'%'},
+      {label:'Current streak', value: Calc.studyStreak()+'d'},
+    ];
+    grid.innerHTML = stats.map(s=>`
+      <div class="card-sm p-4 text-center">
+        <div class="font-extrabold text-[22px]">${s.value}</div>
+        <div class="text-[11px] mt-1" style="color:var(--slate);">${s.label}</div>
+      </div>`).join('');
+
+    // by subject
+    const bySubj = document.getElementById('chartBySubject');
+    if(bySubj){
+      const subjects = Store.get('subjects');
+      if(!subjects.length){ bySubj.innerHTML = '<p class="text-[13px]" style="color:var(--slate);">Add subjects to see this breakdown.</p>'; }
+      else{
+        const maxMin = Math.max(1, ...subjects.map(s=>Calc.subjectStudyMinutes(s.id)));
+        bySubj.innerHTML = subjects.map(s=>{
+          const m = Calc.subjectStudyMinutes(s.id);
+          return `<div>
+            <div class="flex justify-between text-[12px] mb-1"><span class="font-semibold">${Util.esc(s.name)}</span><span style="color:var(--slate);">${Util.fmtDuration(m)}</span></div>
+            <div class="progress-track h-2"><div class="progress-fill h-2" style="width:${Math.round(m/maxMin*100)}%"></div></div>
+          </div>`;
+        }).join('');
+      }
+    }
+    // by day (last 7 days)
+    const byDay = document.getElementById('chartByDay');
+    if(byDay){
+      const days = []; const today = new Date();
+      for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(d); }
+      const mins = days.map(d=>{ const iso=d.toISOString().slice(0,10); return Store.get('studySessions').filter(s=>s.date.slice(0,10)===iso).reduce((a,s)=>a+s.duration,0); });
+      const maxM = Math.max(1,...mins);
+      byDay.innerHTML = days.map((d,i)=>`
+        <div class="flex-1 flex flex-col items-center justify-end h-full">
+          <div style="width:70%;background:var(--accent);border-radius:0;height:${Math.round(mins[i]/maxM*100)}%;min-height:${mins[i]>0?'4px':'0'};"></div>
+          <span class="text-[10px] mt-1" style="color:var(--slate);">${d.toLocaleDateString(undefined,{weekday:'narrow'})}</span>
+        </div>`).join('');
+    }
+    // tasks completed by day
+    const byDayTasks = document.getElementById('chartTasksByDay');
+    if(byDayTasks){
+      const days = []; const today = new Date();
+      for(let i=6;i>=0;i--){ const d=new Date(today); d.setDate(d.getDate()-i); days.push(d); }
+      // Approximate using task completion inferred from status + createdAt is not tracked; use dueDate for completed tasks matching that day
+      const counts = days.map(d=>{ const iso=d.toISOString().slice(0,10); return Store.get('tasks').filter(t=>t.status==='completed' && t.dueDate===iso).length; });
+      const maxC = Math.max(1,...counts);
+      byDayTasks.innerHTML = days.map((d,i)=>`
+        <div class="flex-1 flex flex-col items-center justify-end h-full">
+          <div style="width:70%;background:var(--purple);border-radius:0;height:${Math.round(counts[i]/maxC*100)}%;min-height:${counts[i]>0?'4px':'0'};"></div>
+          <span class="text-[10px] mt-1" style="color:var(--slate);">${d.toLocaleDateString(undefined,{weekday:'narrow'})}</span>
+        </div>`).join('');
+    }
+  }
+};
+
+/* ===================== DEMO DATA ===================== */
+const Demo = {
+  load(){
+    if(Store.data.settings.demoActive){ Views.toast('Demo data already loaded.'); return; }
+    const physics = Store.add('subjects',{name:'Physics'});
+    const math = Store.add('subjects',{name:'Mathematics'});
+    const chem = Store.add('subjects',{name:'Chemistry'});
+    const eng = Store.add('subjects',{name:'English'});
+
+    const chapterNames = {
+      [physics.id]: ['Light — Reflection','Human Eye','Electricity','Magnetic Effects','Sources of Energy'],
+      [math.id]: ['Real Numbers','Polynomials','Triangles','Trigonometry','Statistics','Probability'],
+      [chem.id]: ['Chemical Reactions','Acids & Bases','Metals & Non-metals'],
+      [eng.id]: ['Prose Unit 1','Poetry Unit 1','Grammar Basics'],
+    };
+    Object.entries(chapterNames).forEach(([sid, names])=>{
+      names.forEach((name,i)=>{
+        const status = i < Math.ceil(names.length*0.4) ? 'completed' : (i < Math.ceil(names.length*0.7) ? 'learning' : 'not-started');
+        Store.add('chapters',{subjectId:sid, name, status, confidence: status==='completed'?4:(status==='learning'?3:1)});
+      });
+    });
+
+    const today = Util.todayISO();
+    Store.add('tasks',{title:'Electricity — Numericals', description:'Complete NCERT questions 1–15.', subjectId:physics.id, priority:'high', dueDate:today, duration:45, status:'not-started'});
+    Store.add('tasks',{title:'Trigonometry practice set', description:'Solve identities worksheet.', subjectId:math.id, priority:'medium', dueDate:today, duration:30, status:'not-started'});
+    Store.add('tasks',{title:'Read Prose Unit 1', description:'', subjectId:eng.id, priority:'low', dueDate:today, duration:20, status:'completed'});
+    Store.add('tasks',{title:'Acids & Bases revision', description:'Review reaction equations.', subjectId:chem.id, priority:'medium', dueDate:today, duration:25, status:'completed'});
+    Store.add('tasks',{title:'Metals & Non-metals worksheet', description:'', subjectId:chem.id, priority:'high', dueDate:today, duration:30, status:'not-started'});
+    const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+    Store.add('tasks',{title:'Statistics assignment', description:'', subjectId:math.id, priority:'medium', dueDate:tomorrow.toISOString().slice(0,10), duration:40, status:'not-started'});
+
+    for(let i=6;i>=0;i--){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      if(i%2===0){
+        Store.add('studySessions',{subjectId:physics.id, topic:'Electricity', duration:35+i*2, date:d.toISOString()});
+      }
+      if(i%3===0){
+        Store.add('studySessions',{subjectId:math.id, topic:'Trigonometry', duration:25+i, date:d.toISOString()});
+      }
+    }
+
+    Store.add('goals',{name:'Score well in boards', description:'Aim for strong overall performance.', category:'long', targetDate:null, progress:35, completed:false});
+    Store.add('goals',{name:'Complete Physics revision', description:'Finish all chapters.', category:'week', targetDate:null, progress:40, completed:false});
+    Store.add('goals',{name:'Finish trigonometry worksheet', description:'', category:'today', targetDate:today, progress:0, completed:false});
+
+    const h1 = Store.add('habits',{name:'Study'});
+    const h2 = Store.add('habits',{name:'Revision'});
+    for(let i=6;i>=0;i--){
+      const d = new Date(); d.setDate(d.getDate()-i);
+      const iso = d.toISOString().slice(0,10);
+      if(i<5) Store.add('habitCompletions',{habitId:h1.id, date:iso});
+      if(i%2===0) Store.add('habitCompletions',{habitId:h2.id, date:iso});
+    }
+
+    const examDate = new Date(); examDate.setDate(examDate.getDate()+14);
+    Store.add('exams',{name:'Science & Math Term Exam', date:examDate.toISOString().slice(0,10), subjectIds:[physics.id, chem.id, math.id], notes:'Covers all chapters completed so far.'});
+
+    Store.add('notes',{title:'Reflection laws summary', subjectId:physics.id, topic:'Light', content:'Angle of incidence equals angle of reflection. Image formed is virtual and laterally inverted for plane mirrors.', date:today});
+
+    Store.data.settings.demoActive = true;
+    Store.save();
+    Views.toast('Demo data loaded');
+    Views.refreshAll();
+  },
+  clear(){
+    if(!Store.data.settings.demoActive){ Views.toast('No demo data to clear.'); return; }
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-2">Clear demo data?</h3>
+      <p class="text-[13px] mb-5" style="color:var(--slate);">This removes all demo subjects, tasks, sessions, goals, habits, exams and notes. This cannot be undone.</p>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost flex-1" onclick="Modal.close()">Cancel</button>
+        <button class="btn btn-danger flex-1" onclick="Demo.performClear()">Clear demo data</button>
+      </div>
+    `);
+  },
+  performClear(){
+    const settings = Store.data.settings;
+    Store.data = DEFAULT_DATA();
+    Store.data.settings = {...settings, demoActive:false};
+    Store.save();
+    Modal.close();
+    Views.toast('Demo data cleared');
+    Views.refreshAll();
+  }
+};
+
+/* ===================== BACKUP ===================== */
+const Backup = {
+  exportData(){
+    const blob = new Blob([JSON.stringify(Store.data,null,2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'comtrack-backup-'+Util.todayISO()+'.json';
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+    Views.toast('Data exported');
+  },
+  importData(evt){
+    const file = evt.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const parsed = JSON.parse(reader.result);
+        const required = ['settings','subjects','tasks','chapters','studySessions','timetable','exams','notes','goals','habits','habitCompletions'];
+        for(const k of required) if(!(k in parsed)) throw new Error('Missing field: '+k);
+        Store.data = parsed;
+        Store.save();
+        Views.applyTheme();
+        Views.toast('Data imported');
+        Views.refreshAll();
+        Views.loadSettingsForm();
+      }catch(e){
+        Views.toast('Import failed — invalid file.');
+        console.error(e);
+      }
+    };
+    reader.readAsText(file);
+    evt.target.value = '';
+  },
+  resetAll(){
+    Modal.open(`
+      <h3 class="font-extrabold text-[18px] mb-2">Reset all data?</h3>
+      <p class="text-[13px] mb-5" style="color:var(--slate);">Every task, subject, session, note, goal, habit and exam will be permanently deleted. This cannot be undone.</p>
+      <div class="flex gap-2">
+        <button class="btn btn-ghost flex-1" onclick="Modal.close()">Cancel</button>
+        <button class="btn btn-danger flex-1" onclick="Backup.performReset()">Reset everything</button>
+      </div>
+    `);
+  },
+  performReset(){
+    Store.data = DEFAULT_DATA();
+    Store.save();
+    Modal.close();
+    Views.toast('All data reset');
+    Views.applyTheme();
+    Views.refreshAll();
+    Views.loadSettingsForm();
+  }
+};
+
+/* ===================== INIT ===================== */
+window.addEventListener('keydown', (e)=>{ if(e.key==='Escape') Modal.close(); });
+
+Store.load();
+Views.applyTheme();
+Timer.init();
+Views.show('home');
+Views.loadSettingsForm();
+</script>
+</body>
+</html>
